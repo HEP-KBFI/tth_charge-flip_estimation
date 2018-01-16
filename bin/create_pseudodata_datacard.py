@@ -169,46 +169,8 @@ def create_pseudodata(infile, outfile_data, outfile_pseudodata, channel, rebin=1
 
 if __name__ == "__main__":
   np.random.seed(123)
-  #indir = "/home/andres/ttHAnalysis/2016/histosCF_summer_Aug25_noMassScaling/datacards/charge_flip/"
-  #indir = "/home/ssawant/ttHAnalysis/2016/histosCF_summer_June6/datacards/charge_flip/"
-  #indir = "/home/ssawant/ttHAnalysis/2016/histosCF_summer_June6_test1/datacards/charge_flip/"
+
   indir = "/home/ssawant/ttHAnalysis/2016/histosCF_2018_Jan/datacards/charge_flip/"
-
-  '''
-  infile = "prepareDatacards_charge_flip_mass_ll.root"
-  datafile = "prepareDatacards_data_charge_flip_mass_ll_vCMSSW747.root"
-  pseudodatafile = "prepareDatacards_pseudodata_charge_flip_mass_ll_vCMSSW747.root"
-  '''
-
-  '''
-  infile = "prepareDatacards_charge_flip_mass_ll_RebinThrsh0.5.root"
-  datafile = "prepareDatacards_data_charge_flip_mass_ll_vCMSSW747_RebinThrsh0.5.root"  
-  pseudodatafile = "prepareDatacards_pseudodata_charge_flip_mass_ll_vCMSSW747_RebinThrsh0.5.root"
-  '''
-
-  '''
-  infile = "prepareDatacards_charge_flip_mass_ll_RebinThrsh0.5_v2.root"
-  datafile = "prepareDatacards_data_charge_flip_mass_ll_vCMSSW747_RebinThrsh0.5_v2.root" 
-  pseudodatafile = "prepareDatacards_pseudodata_charge_flip_mass_ll_vCMSSW747_RebinThrsh0.5_v2.root"
-  '''
-
-  '''
-  infile = "prepareDatacards_charge_flip_mass_ll_RebinThrsh0.5_v2.root"
-  datafile = "prepareDatacards_data_charge_flip_mass_ll_vCMSSW747_RebinThrsh0.5_v3.root"  
-  pseudodatafile = "prepareDatacards_pseudodata_charge_flip_mass_ll_vCMSSW747_RebinThrsh0.5_v3.root" 
-  '''
-
-  '''
-  infile = "prepareDatacards_charge_flip_mass_ll_RebinThrsh1.0.root" 
-  datafile = "prepareDatacards_data_charge_flip_mass_ll_vCMSSW747_RebinThrsh1.0.root"        
-  pseudodatafile = "prepareDatacards_pseudodata_charge_flip_mass_ll_vCMSSW747_RebinThrsh1.0.root" 
-  '''
-
-  '''
-  infile = "prepareDatacards_charge_flip_mass_ll_RebinThrsh0.5_v4.root"
-  datafile = "prepareDatacards_data_charge_flip_mass_ll_vCMSSW747_RebinThrsh0.5_v4.root"
-  pseudodatafile = "prepareDatacards_pseudodata_charge_flip_mass_ll_vCMSSW747_RebinThrsh0.5_v4.root" 
-  '''
 
   infile = "prepareDatacards_charge_flip_mass_ll_AutoRebinThrsh1.0.root"
   datafile = "prepareDatacards_data_charge_flip_mass_ll_AutoRebinThrsh1.0.root"
