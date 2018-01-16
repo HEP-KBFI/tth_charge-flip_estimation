@@ -177,12 +177,34 @@ int histograms_main(string indir, string outdir, string type) {
 	for (string era : {"13TeV"}) {
 		for (string chn : chns) {
 // ! Change filename here for data vs. pseudodata
-			string file = aux_shapes + "/prepareDatacards_" + type + "_charge_flip_mass_ll.root";
 
+		  string file = aux_shapes + "/prepareDatacards_" + type + "_charge_flip_mass_ll_AutoRebinThrsh1.0.root";
+		  cout << "Input file: " << file << endl;
+		  cout << "aux_shapes: " << aux_shapes << ", era: " << era << ", chn: " << chn << endl;
+		  
+			/*
 			cb.cp().channel({chn}).backgrounds().ExtractShapes(
 					file, "ttH_charge_flip_" + chn+"_$BIN/x_$PROCESS", "ttH_charge_flip_" + chn+"_$BIN/x_$PROCESS_$SYSTEMATIC");
 			cb.cp().channel({chn}).signals().ExtractShapes(
-					file, "ttH_charge_flip_" + chn +"_$BIN/x_$PROCESS", "ttH_charge_flip_" + chn+"_$BIN/x_$PROCESS_$SYSTEMATIC");
+			file, "ttH_charge_flip_" + chn +"_$BIN/x_$PROCESS", "ttH_charge_flip_" + chn+"_$BIN/x_$PROCESS_$SYSTEMATIC"); */
+		  /*
+			cb.cp().channel({chn}).backgrounds().ExtractShapes( 
+					file, "ttH_charge_flip_" + chn+"_$BIN/$PROCESS", "ttH_charge_flip_" + chn+"_$BIN/$PROCESS_$SYSTEMATIC");                               
+                        cb.cp().channel({chn}).signals().ExtractShapes(
+			file, "ttH_charge_flip_" + chn +"_$BIN/$PROCESS", "ttH_charge_flip_" + chn+"_$BIN/$PROCESS_$SYSTEMATIC"); */
+		  /*
+		  cb.cp().channel({chn}).backgrounds().ExtractShapes(
+				  file, "ttH_charge_flip_" + chn+"_$BIN/$PROCESS_rebinned", "ttH_charge_flip_" + chn+"_$BIN/$PROCESS_$SYSTEMATIC_rebinned");  
+		  cb.cp().channel({chn}).signals().ExtractShapes( 
+		  file, "ttH_charge_flip_" + chn +"_$BIN/$PROCESS_rebinned", "ttH_charge_flip_" + chn+"_$BIN/$PROCESS_$SYSTEMATIC_rebinned"); */
+
+		  cb.cp().channel({chn}).backgrounds().ExtractShapes(
+		          file, "ttH_charge_flip_" + chn+"_$BIN/rebinned/$PROCESS", "ttH_charge_flip_" + chn+"_$BIN/rebinned/$PROCESS_$SYSTEMATIC");                               
+                  cb.cp().channel({chn}).signals().ExtractShapes(
+			  file, "ttH_charge_flip_" + chn +"_$BIN/rebinned/$PROCESS", "ttH_charge_flip_" + chn+"_$BIN/rebinned/$PROCESS_$SYSTEMATIC"); 
+
+
+
 		}
 	}
 
@@ -227,10 +249,13 @@ int histograms_main(string indir, string outdir, string type) {
 }
 
 int main() {
-    std::string indir = "/home/andres/ttHAnalysis/2016/histosCF_summer_Aug25_noMassScaling/datacards/charge_flip/";
-    std::string outdir = "summer_Aug25";
-    
-    histograms_main(indir, outdir, "data");
-    histograms_main(indir, outdir, "pseudodata");
+
+  std::string indir = "/home/ssawant/ttHAnalysis/2016/histosCF_2018_Jan/datacards/charge_flip/";
+
+  std::string outdir = "2016_Jan_AutoRebinThrsh1.0";
+
+
+  histograms_main(indir, outdir, "data");
+  histograms_main(indir, outdir, "pseudodata");
 }
 
