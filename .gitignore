@@ -1,3 +1,10 @@
 *.pyc
 fit_output*
 output*
+.idea/
+*.cflags
+*.config
+*.creator
+*.cxxflags
+*.files
+*.includes
