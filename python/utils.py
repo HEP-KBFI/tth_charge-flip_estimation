@@ -1,6 +1,8 @@
-from ROOT import TH2F, TFile
-from array import array
 import ROOT
+
+ROOT.gROOT.SetBatch(True)
+
+import array
 import errno    
 import os
 
@@ -11,24 +13,26 @@ Utility functions for charge flip estimation
 """
 
 """Bin names in the form they are in the ntuple"""
-bin_names_composite = ["BB_LL", "BB_ML", "BB_MM", "BB_HL", "BB_HM", "BB_HH",
-      "EE_LL", "EE_ML", "EE_MM", "EE_HL", "EE_HM", "EE_HH",
-      "BE_LL", "BE_ML", "EB_ML", "BE_MM", "BE_HL", "EB_HL",
-      "BE_HM", "EB_HM", "BE_HH"]
+BIN_NAMES_COMPOSITE = [
+  "BB_LL", "BB_ML", "BB_MM", "BB_HL", "BB_HM", "BB_HH",
+  "EE_LL", "EE_ML", "EE_MM", "EE_HL", "EE_HM", "EE_HH",
+  "BE_LL", "BE_ML", "EB_ML", "BE_MM", "BE_HL", "EB_HL",
+  "BE_HM", "EB_HM", "BE_HH",
+]
 
 """Nicer bin names - historical reason why 2 sets used
    TODO: change the format in ntuples"""
-bin_names_composite_nice = ["BL_BL", "BM_BL", "BM_BM", "BH_BL", "BH_BM", "BH_BH",
-      "EL_EL", "EM_EL", "EM_EM", "EH_EL", "EH_EM", "EH_EH",
-      "BL_EL", "BM_EL", "EM_BL", "BM_EM", "BH_EL", "EH_BL",
-      "BH_EM", "EH_BM", "BH_EH"]
+BIN_NAMES_COMPOSITE_NICE = [
+  "BL_BL", "BM_BL", "BM_BM", "BH_BL", "BH_BM", "BH_BH",
+  "EL_EL", "EM_EL", "EM_EM", "EH_EL", "EH_EM", "EH_EH",
+  "BL_EL", "BM_EL", "EM_BL", "BM_EM", "BH_EL", "EH_BL",
+  "BH_EM", "EH_BM", "BH_EH",
+]
 
-bin_names_single = ["BL", "BM", "BH", "EL", "EM", "EH"]
-
+bin_names_single = [ "BL", "BM", "BH", "EL", "EM", "EH" ]
 
 def get_component_cats(nice_name):
   return nice_name.split("_")
-
 
 def mkdir_p(path):
     try:
@@ -48,7 +52,7 @@ def read_category_ratios(file_cats, exclude_bins = []):
     spl = line.split(",")
     bin_nr = int(spl[0])
     #Skip some bins
-    bin_name = bin_names_composite_nice[bin_nr]
+    bin_name = BIN_NAMES_COMPOSITE_NICE[bin_nr]
     if bin_nr in exclude_bins: continue
     if bin_name in exclude_bins: continue
     if float(spl[2]) == 0: 
@@ -58,10 +62,8 @@ def read_category_ratios(file_cats, exclude_bins = []):
     ratios_dict[bin_name] = (float(spl[1]), float(spl[2]), float(spl[3]) )    
   return (ratios, ratios_dict)
 
-
 def readMisIDRatios(file_misId):
-  ROOT.gROOT.SetBatch(True)
-  f = TFile(file_misId)
+  f = ROOT.TFile(file_misId)
   misIdHisto = f.Get("chargeMisId")
   ratios = {}
   for etaBin in range(1, misIdHisto.GetNbinsY()+1):
@@ -73,19 +75,19 @@ def get_bin_name_single(bin_nr_eta, bin_nr_pt):
   return bin_names_single[(bin_nr_eta - 1) * 3 + (bin_nr_pt - 1)]
   
 def get_bin_name(bin_nr):
-  return bin_names_composite[bin_nr]
+  return BIN_NAMES_COMPOSITE[bin_nr]
 
 def get_bin_name_nice(bin_nr):
-  return bin_names_composite_nice[bin_nr]
+  return BIN_NAMES_COMPOSITE_NICE[bin_nr]
     
 def bin_names_to_numbers(bin_names):
   bin_nrs = []
   for b in bin_names:
-      bin_nrs.append(bin_names_composite.index(b))
+      bin_nrs.append(BIN_NAMES_COMPOSITE.index(b))
   return bin_nrs
 
 def get_bin_nr(bin_name_nice):
-  return bin_names_composite_nice.index(bin_name_nice)
+  return BIN_NAMES_COMPOSITE_NICE.index(bin_name_nice)
 
 
 def make_title(name, excluded):
@@ -109,7 +111,7 @@ def make_title(name, excluded):
 
 def fit_results_to_file(rates, uncs, fittype, fitname, datastring):
     fname = "fit_output_%s_%s/fit_res%s.root" % (datastring, fitname, fittype)
-    f = TFile(fname,"recreate")
+    f = ROOT.TFile(fname,"recreate")
     f.cd()
 
     binsPt = [15, 25, 50, 1000]
@@ -117,7 +119,7 @@ def fit_results_to_file(rates, uncs, fittype, fitname, datastring):
     NbinsPt = len(binsPt) - 1
     NbinsEta = len(binsEta) - 1
 
-    h = TH2F("chargeMisId","chargeMisId;p_{T}(e) [GeV];#eta(e)", NbinsPt, array('d',binsPt), NbinsEta, array('d',binsEta))
+    h = ROOT.TH2F("chargeMisId","chargeMisId;p_{T}(e) [GeV];#eta(e)", NbinsPt, array.array('d',binsPt), NbinsEta, array.array('d',binsEta))
     for i in range(len(rates)):
         #print "%d %f %f %f" %(i, (i%NbinsPt)+1, (i/NbinsPt)+1, rates[i])
         h.SetBinContent((i % NbinsPt)+1, (i / NbinsPt)+1, rates[i])
