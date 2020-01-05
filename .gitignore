@@ -18,3 +18,4 @@ bin/latex_output/*.toc
 bin/latex_output/*.pdf
 bin/pull_plots
 bin/plots
+__init__.py
