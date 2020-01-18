@@ -2,6 +2,8 @@
 #include "CombineHarvester/CombineTools/interface/Systematics.h"
 #include "CombineHarvester/CombineTools/interface/BinByBin.h"
 
+#include <FWCore/Utilities/interface/Exception.h> // cms::Exception
+
 #include <boost/filesystem.hpp> // boost::filesystem::
 #include <boost/program_options.hpp> // boost::program_options::
 #include <boost/range/adaptor/map.hpp> // boost::adaptors::map_keys
@@ -19,47 +21,12 @@
 */
 
 /** TODO: support for muons */
-/** TODO: option to omit certain combinations of charge and category for signal/background */
 
 std::vector<std::string> SHAPESYST_NAMES = {
   "CMS_ttHl_electronER",
   "CMS_ttHl_electronESBarrel",
   "CMS_ttHl_electronESEndcap",
 };
-
-struct DatacardParams
-{
-  DatacardParams()
-    : year(-1)
-  {}
-  std::string input_file;
-  std::string output_dir;
-  std::vector<std::string> charges;
-  std::vector<std::string> signal_processes;
-  std::vector<std::string> background_processes;
-  std::string prefix;
-  std::vector<std::string> shape_systs_signal;
-  std::vector<std::string> shape_systs_background;
-  int year;
-};
-
-std::ostream &
-operator<<(std::ostream & os,
-           const DatacardParams & params)
-{
-  os
-    << "Input:            " << params.input_file                                           << "\n"
-       "Output:           " << params.output_dir                                           << "\n"
-       "Charges:          " << boost::algorithm::join(params.charges, ", ")                << "\n"
-       "Signal:           " << boost::algorithm::join(params.signal_processes, ", ")       << "\n"
-       "Background:       " << boost::algorithm::join(params.background_processes, ", ")   << "\n"
-       "Signal shape:     " << boost::algorithm::join(params.shape_systs_signal, ", ")     << "\n"
-       "Background shape: " << boost::algorithm::join(params.shape_systs_background, ", ") << "\n"
-       "Year:             " << params.year                                                 << "\n"
-       "Prefix:           " << params.prefix                                               << '\n'
-  ;
-  return os;
-}
 
 std::map<int, double> LUMINOSITY_UNC = { // in %
   { 2016, 2.5 },
@@ -111,6 +78,93 @@ std::map<std::string, double> BACKGROUNDS_UNC = { // in %
   { "Diboson",    50. },
   { "TTbar",      50. },
 };
+
+struct DatacardParams
+{
+  DatacardParams()
+    : year(-1)
+  {}
+
+  void
+  split_skip()
+  {
+    skip_split_signal.clear();
+    skip_split_background.clear();
+    for(const std::string & skip_entry: skip)
+    {
+      std::vector<std::string> tokens;
+      boost::split(tokens, skip_entry, boost::is_any_of("+"));
+      if(tokens.size() != 3)
+      {
+        throw cms::Exception(__func__) << "Invalid argument: " << skip_entry;
+      }
+      const std::string charge_choice = tokens.at(0);
+      const std::string bin_choice = tokens.at(1);
+      const std::string source_choice = tokens.at(2);
+      if(std::find(CHARGES.cbegin(), CHARGES.cend(), charge_choice) == CHARGES.cend())
+      {
+        throw cms::Exception(__func__) << "Invalid argument: " << charge_choice;
+      }
+      bool found_bin = false;
+      for(const auto & kv: BINNING)
+      {
+        if(kv.second == bin_choice)
+        {
+          found_bin = true;
+          break;
+        }
+      }
+      if(! found_bin)
+      {
+        throw cms::Exception(__func__) << "Invalid argument: " << bin_choice;
+      }
+      if(source_choice == "signal")
+      {
+        skip_split_signal[charge_choice].push_back(bin_choice);
+      }
+      else if(source_choice == "background")
+      {
+        skip_split_background[charge_choice].push_back(bin_choice);
+      }
+      else
+      {
+        throw cms::Exception(__func__) << "Invalid argument: " << source_choice;
+      }
+    }
+  }
+
+  std::string input_file;
+  std::string output_dir;
+  std::vector<std::string> charges;
+  std::vector<std::string> signal_processes;
+  std::vector<std::string> background_processes;
+  std::string prefix;
+  std::vector<std::string> shape_systs_signal;
+  std::vector<std::string> shape_systs_background;
+  std::vector<std::string> skip;
+  std::map<std::string, std::vector<std::string>> skip_split_signal;
+  std::map<std::string, std::vector<std::string>> skip_split_background;
+  int year;
+};
+
+std::ostream &
+operator<<(std::ostream & os,
+           const DatacardParams & params)
+{
+  os
+    << "Input:            " << params.input_file                                           << "\n"
+       "Output:           " << params.output_dir                                           << "\n"
+       "Charges:          " << boost::algorithm::join(params.charges, ", ")                << "\n"
+       "Signal:           " << boost::algorithm::join(params.signal_processes, ", ")       << "\n"
+       "Background:       " << boost::algorithm::join(params.background_processes, ", ")   << "\n"
+       "Signal shape:     " << boost::algorithm::join(params.shape_systs_signal, ", ")     << "\n"
+       "Background shape: " << boost::algorithm::join(params.shape_systs_background, ", ") << "\n"
+       "Skipping:         " << boost::algorithm::join(params.skip, ", ")                   << "\n"
+       "Year:             " << params.year                                                 << "\n"
+       "Prefix:           " << params.prefix                                               << '\n'
+  ;
+  return os;
+}
 
 /*!
     indir - directory with histograms for data and pseudodata created by create_pseudodata_datacard.py
@@ -180,19 +234,39 @@ create_datacard(const DatacardParams & params)
     const std::set<std::string> bins = cb.cp().channel({ charge }).bin_set();
     for(const std::string & bin: bins)
     {
-
-      for(const std::string & shape_syst_sig: params.shape_systs_signal)
+      if(! (params.skip_split_signal.count(charge) && std::find(
+             params.skip_split_signal.at(charge).cbegin(),
+             params.skip_split_signal.at(charge).cend(), bin
+           ) != params.skip_split_signal.at(charge).cend()
+        ))
       {
-        // skip if(bin == "EE_LL" && charge == "SS") ?
-        cb.cp().channel({ charge }).bin({ bin }).signals().AddSyst(
-          cb, shape_syst_sig, "shape", ch::syst::SystMap<>::init(1.00)
-        );
+        for(const std::string & shape_syst_sig: params.shape_systs_signal)
+        {
+          cb.cp().channel({ charge }).bin({ bin }).signals().AddSyst(
+            cb, shape_syst_sig, "shape", ch::syst::SystMap<>::init(1.00)
+          );
+        }
       }
-      for(const std::string & shape_syst: params.shape_systs_background)
+      else
       {
-        cb.cp().channel({ charge }).bin({ bin }).backgrounds().AddSyst(
-          cb, shape_syst, "shape", ch::syst::SystMap<>::init(1.00)
-        );
+        std::cout << "Skipping signal " << charge << ", bin " << bin << '\n';
+      }
+      if(! (params.skip_split_background.count(charge) && std::find(
+             params.skip_split_background.at(charge).cbegin(),
+             params.skip_split_background.at(charge).cend(), bin
+           ) != params.skip_split_background.at(charge).cend()
+        ))
+      {
+        for(const std::string & shape_syst: params.shape_systs_background)
+        {
+          cb.cp().channel({ charge }).bin({ bin }).backgrounds().AddSyst(
+            cb, shape_syst, "shape", ch::syst::SystMap<>::init(1.00)
+          );
+        }
+      }
+      else
+      {
+        std::cout << "Skipping background " << charge << ", bin " << bin << '\n';
       }
     }
   }
@@ -358,6 +432,11 @@ main(int argc,
   const std::string shape_syst_signal_default_joined = boost::algorithm::join(shape_syst_signal_default, ", ");
   const std::string shape_syst_background_default_joined = boost::algorithm::join(shape_syst_background_default, ", ");
 
+  const std::vector<std::string> skip_default = {
+    "SS+EE_LL+signal",
+  };
+  const std::string skip_default_joined = boost::algorithm::join(skip_default, " ");
+
   DatacardParams params;
   bool force = false;
   boost::program_options::options_description desc("Options");
@@ -439,6 +518,14 @@ main(int argc,
           })
       ,
       Form("Shape systematics for background (choices: %s)", shape_syst_background_default_joined.data())
+    )
+    (
+      "skip,x",
+      boost::program_options::value<std::vector<std::string>>(&params.skip)
+        ->multitoken()
+        ->default_value(skip_default, skip_default_joined)
+      ,
+      "Skip certain bins (format: list of <charge sum>+<bin>+<signal/background>, separated by whitespace)"
     )
     (
       "prefix,p",
