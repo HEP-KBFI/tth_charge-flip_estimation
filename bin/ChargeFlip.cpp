@@ -20,12 +20,15 @@
              Karl Ehatäht <karl.ehataht@cern.ch>
 */
 
-/** TODO: support for muons */
-
 std::vector<std::string> SHAPESYST_NAMES = {
   "CMS_ttHl_electronER",
   "CMS_ttHl_electronESBarrel",
   "CMS_ttHl_electronESEndcap",
+  "CMS_ttHl_muonER",
+  "CMS_ttHl_muonESEndcap1",
+  "CMS_ttHl_muonESEndcap2",
+  "CMS_ttHl_muonESBarrel1",
+  "CMS_ttHl_muonESBarrel2",
 };
 
 std::map<int, double> LUMINOSITY_UNC = { // in %
@@ -133,6 +136,15 @@ struct DatacardParams
     }
   }
 
+  void
+  prune_systematics()
+  {
+    assert(is_electron != is_muon);
+    const std::string token = is_electron ? "CMS_ttHl_electron" : "CMS_ttHl_muon";
+    prune_systematics(shape_systs_signal, token);
+    prune_systematics(shape_systs_background, token);
+  }
+
   std::string input_file;
   std::string output_dir;
   std::vector<std::string> charges;
@@ -145,6 +157,24 @@ struct DatacardParams
   std::map<std::string, std::vector<std::string>> skip_split_signal;
   std::map<std::string, std::vector<std::string>> skip_split_background;
   int year;
+  bool is_electron;
+  bool is_muon;
+
+private:
+  void
+  prune_systematics(std::vector<std::string> & systematics,
+                    const std::string & token)
+  {
+    std::vector<std::string> systematics_new;
+    for(const std::string & systematic: systematics)
+    {
+      if(boost::starts_with(systematic, token))
+      {
+        systematics_new.push_back(systematic);
+      }
+    }
+    systematics = systematics_new;
+  }
 };
 
 std::ostream &
@@ -161,6 +191,8 @@ operator<<(std::ostream & os,
        "Background shape: " << boost::algorithm::join(params.shape_systs_background, ", ") << "\n"
        "Skipping:         " << boost::algorithm::join(params.skip, ", ")                   << "\n"
        "Year:             " << params.year                                                 << "\n"
+       "Electron:         " << params.is_electron                                          << "\n"
+       "Muon:             " << params.is_muon                                              << "\n"
        "Prefix:           " << params.prefix                                               << '\n'
   ;
   return os;
@@ -428,6 +460,10 @@ main(int argc,
   const std::vector<std::string> shape_syst_background_default = {
     "CMS_ttHl_electronESBarrel",
     "CMS_ttHl_electronESEndcap",
+    "CMS_ttHl_muonESEndcap1",
+    "CMS_ttHl_muonESEndcap2",
+    "CMS_ttHl_muonESBarrel1",
+    "CMS_ttHl_muonESBarrel2",
   };
   const std::string shape_syst_signal_default_joined = boost::algorithm::join(shape_syst_signal_default, ", ");
   const std::string shape_syst_background_default_joined = boost::algorithm::join(shape_syst_background_default, ", ");
@@ -465,6 +501,18 @@ main(int argc,
           })
       ,
       Form("Charge sums (choices: %s)", charges_joined.data())
+    )
+    (
+      "is-electron,e",
+      boost::program_options::bool_switch(&params.is_electron)
+        ->default_value(false),
+      "For electrons"
+    )
+    (
+      "is-muon,m",
+      boost::program_options::bool_switch(&params.is_muon)
+        ->default_value(false),
+      "For muons"
     )
     (
       "sig,s",
@@ -559,6 +607,16 @@ main(int argc,
         return EXIT_FAILURE;
       }
     }
+    if(! vm.at("is-electron").defaulted() && ! vm.at("is-muon").defaulted())
+    {
+      std::cerr << "Cannot specify 'is-electron' and 'is-muon' simultaneously\n";
+      return EXIT_FAILURE;
+    }
+    if(vm.at("is-electron").defaulted() && vm.at("is-muon").defaulted())
+    {
+      std::cerr << "Must specify either 'is-electron' or 'is-muon'\n";
+      return EXIT_FAILURE;
+    }
   }
 
   catch(const boost::program_options::error & err)
@@ -605,11 +663,13 @@ main(int argc,
     return EXIT_FAILURE;
   }
 
+  params.split_skip();
+  params.prune_systematics();
   std::cout << params << '\n';
 
-//  if(! create_datacard(params))
-//  {
-//    return EXIT_FAILURE;
-//  }
+  if(! create_datacard(params))
+  {
+    return EXIT_FAILURE;
+  }
   return EXIT_SUCCESS;
 }
