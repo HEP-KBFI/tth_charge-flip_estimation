@@ -20,7 +20,6 @@
 
 /** TODO: support for muons */
 /** TODO: option to omit certain combinations of charge and category for signal/background */
-/** TODO: fix boost program_option notifiers */
 
 std::vector<std::string> SHAPESYST_NAMES = {
   "CMS_ttHl_electronER",
@@ -276,8 +275,17 @@ notifier(const std::vector<T> & choices,
 {
   if(std::find(choices.cbegin(), choices.cend(), selection) == choices.cend())
   {
+    std::string selection_str;
+    if(std::is_same<T, std::string>::value)
+    {
+      selection_str = selection;
+    }
+    else
+    {
+      selection_str = std::to_string(selection);
+    }
     throw boost::program_options::validation_error(
-      boost::program_options::validation_error::invalid_option_value, option_name
+      boost::program_options::validation_error::invalid_option_value, option_name, selection_str
     );
   }
 }
@@ -298,8 +306,17 @@ notifierv(const std::vector<T> & choices,
   }
   if(! invalid_selections.empty())
   {
+    std::stringstream ss;
+    for(std::size_t invalid_idx = 0; invalid_idx < invalid_selections.size(); ++invalid_idx)
+    {
+      ss << invalid_selections.at(invalid_idx);
+      if(invalid_idx < (invalid_selections.size() - 1))
+      {
+        ss << ' ';
+      }
+    }
     throw boost::program_options::validation_error(
-      boost::program_options::validation_error::invalid_option_value, option_name
+      boost::program_options::validation_error::invalid_option_value, option_name, ss.str()
     );
   }
 }
@@ -460,6 +477,7 @@ main(int argc,
   catch(const boost::program_options::error & err)
   {
     std::cerr << err.what() << '\n';
+    return EXIT_FAILURE;
   }
 
 
