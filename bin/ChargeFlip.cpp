@@ -309,7 +309,7 @@ create_datacard(const DatacardParams & params)
     for(const std::string & charge : params.charges)
     {
       std::cout
-        << "Input file: " << params.input_file << "\n, "
+        << "Input file: " << params.input_file << ", "
            "era: "        << era               << ", "
            "charge: "     << charge            << '\n'
       ;
