@@ -5,12 +5,19 @@ ROOT.gROOT.SetBatch(True)
 import array
 import errno    
 import os
+import argparse
 
 """@file docstring
 Utility functions for charge flip estimation
 
 @author Andres Tiko <andres.tiko@cern.ch>
 """
+
+class SmartFormatter(argparse.ArgumentDefaultsHelpFormatter):
+  def _split_lines(self, text, width):
+    if text.startswith('R|'):
+      return text[2:].splitlines()
+    return argparse.ArgumentDefaultsHelpFormatter._split_lines(self, text, width)
 
 """Bin names in the form they are in the ntuple"""
 BIN_NAMES_COMPOSITE = [

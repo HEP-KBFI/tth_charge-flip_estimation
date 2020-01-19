@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from tthAnalysis.ChargeFlipEstimation.utils import BIN_NAMES_COMPOSITE
+from tthAnalysis.ChargeFlipEstimation.utils import BIN_NAMES_COMPOSITE, SmartFormatter
 
 import ROOT
 import numpy as np
@@ -8,12 +8,6 @@ import numpy as np
 ROOT.gROOT.SetBatch(True)
 
 import argparse
-
-class SmartFormatter(argparse.ArgumentDefaultsHelpFormatter):
-  def _split_lines(self, text, width):
-    if text.startswith('R|'):
-      return text[2:].splitlines()
-    return argparse.ArgumentDefaultsHelpFormatter._split_lines(self, text, width)
 
 """@file docstring
 Script for creating pseudodata and datacards, which are suitable as input to charge flip estimation
