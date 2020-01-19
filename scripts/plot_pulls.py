@@ -1,8 +1,10 @@
-import os
-import errno    
-from ROOT import TFile, TH1D, TCanvas
+#!/usr/bin/env python
+
+from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, bin_names_composite, bin_names_single, \
+                                                   mkdir_p, readMisIDRatios
+from tthAnalysis.ChargeFlipEstimation.plot_pulls import get_other_component, get_all_containers
+
 import ROOT
-from utils import read_category_ratios, bin_names_composite, bin_names_single, mkdir_p
 
 """@file docstring
 Script for plotting pulls, superseded by plot_pulls_all.py
@@ -10,34 +12,15 @@ Script for plotting pulls, superseded by plot_pulls_all.py
 @author Andres Tiko <andres.tiko@cern.ch>
 """
 
-
 def get_bin_nr_composite(cat):
   return bin_names_composite.index(cat)
 
 def get_bin_nr_single(cat):
   return bin_names_single.index(cat)
 
-def contained_in(composite_name):
-  comp1 = composite_name[0]+composite_name[3]
-  comp2 = composite_name[1]+composite_name[4]
-  return (comp1, comp2)
-
-
-def get_all_containers(component):
-  containers = []  
-  for c in bin_names_composite:
-    (c1, c2) = contained_in(c)
-    if c1 == component or c2 == component: containers.append(c)
-  return containers
-    
-def get_other_component(category, composite_category):
-  comps = contained_in(composite_category)
-  if comps[0] == category: return comps[1]
-  else: return comps[0]
-
 def make_pull_plot(category, misIDRatios, catRatios, datastring, fitname, fittype):
-  pull_plot = TH1D(category, category, 6, 0, 6 );
-  others_plot = TH1D(category+"others", category+"others", 6, 0, 6 );
+  pull_plot = ROOT.TH1D(category, category, 6, 0, 6 );
+  others_plot = ROOT.TH1D(category+"others", category+"others", 6, 0, 6 );
   bin_names = get_all_containers(category)
   for b in range(1, len(bin_names)+1):
     pull_plot.GetXaxis().SetBinLabel(b,bin_names[b-1])
@@ -52,7 +35,7 @@ def make_pull_plot(category, misIDRatios, catRatios, datastring, fitname, fittyp
     others_plot.SetBinError(b, errO)
     #print bin_names[b-1], value, valueO  
   pull_plot.Add(others_plot, -1)
-  c = TCanvas("Plot", "Plot", 800,600)
+  c = ROOT.TCanvas("Plot", "Plot", 800,600)
   ROOT.gStyle.SetOptStat(0)
   pull_plot.Draw()
   if len(fittype) == 0: fittype = "histograms"

@@ -1,13 +1,14 @@
-import os
-import errno    
-from ROOT import TFile, TH1D, TCanvas
+#!/usr/bin/env python
+
+from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, readMisIDRatios, bin_names_composite, \
+                                                   bin_names_composite_nice, read_exclude_bins, bin_names_single, \
+                                                   get_bin_nr
+from tthAnalysis.ChargeFlipEstimation.matrix_solver import calculate_solution, print_ratios_latex
+from tthAnalysis.ChargeFlipEstimation.plot_pulls import readMisIDRatiosGen, readCategoryRatiosGen, make_pull_plot_21, \
+                                                        makeCatRatiosFrom6
+
 import ROOT
 import math
-from utils import read_category_ratios, readMisIDRatios, bin_names_composite, bin_names_composite_nice, read_exclude_bins, bin_names_single, get_bin_nr
-#, mkdir_p, get_bin_name_single, get_bin_name, 
-#from plot_pulls import 
-from plot_pulls_gen import readMisIDRatiosGen, readCategoryRatiosGen, make_pull_plot_21, makeCatRatiosFrom6
-from matrix_solver import calculate_solution, print_ratios_latex
 
 """@file docstring
 Script for plotting pulls comparing result from 21 and 6 categories
