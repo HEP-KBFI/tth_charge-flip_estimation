@@ -22,27 +22,31 @@ Script for running electron charge flip estimation fit
 
 COMBINE_SETTINGS = {
   'data' : {
-    '2016' : {
-      13 : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
-      17 : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
-    },
-    '2017' : {
-      3  : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 2000",
-      4  : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000",
-      5  : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 2000",
-      8  : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000",
-      15 : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
-    },
-    '2018' : {
-      2  : "--cminDefaultMinimizerType Minuit --cminDefaultMinimizerStrategy 0  --cminDefaultMinimizerTolerance 25 --rMin -4.0 --rMax 20.0",
-      5  : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 25",
-      11 : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000",
-      16 : "--cminDefaultMinimizerType Minuit --cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0",
+    'electron' : {
+      '2016' : {
+        13 : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
+        17 : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
+      },
+      '2017' : {
+        3  : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 2000",
+        4  : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000",
+        5  : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 2000",
+        8  : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000",
+        15 : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
+      },
+      '2018' : {
+        2  : "--cminDefaultMinimizerType Minuit --cminDefaultMinimizerStrategy 0  --cminDefaultMinimizerTolerance 25 --rMin -4.0 --rMax 20.0",
+        5  : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 25",
+        11 : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000",
+        16 : "--cminDefaultMinimizerType Minuit --cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0",
+      },
     },
   },
   'pseudodata' : {
-    '2016' : {
-      2  : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
+    'electron' : {
+      '2016' : {
+        2  : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
+      },
     },
   },
 }
@@ -115,7 +119,7 @@ def read_fit_result(fit_file, postfit_file, bin):
 def failed_result(bin):
   return (int(bin), float('nan'), float('nan'), float('nan'))
 
-def make_fits(input_dir, data_type, era, skip_bins = None):
+def make_fits(input_dir, data_type, lepton_type, era, skip_bins = None):
   assert(os.path.isdir(input_dir))
 
   datacard_dir = os.path.join(input_dir, "cards")
@@ -171,8 +175,11 @@ def make_fits(input_dir, data_type, era, skip_bins = None):
     # Default fit settings specified in else clause
     # But always do not give convergence - settings for specific fits defined here, adjust as necessary:
     specific_settings = "--robustFit 1 "
-    if data_type in COMBINE_SETTINGS and era in COMBINE_SETTINGS[data_type] and bin in COMBINE_SETTINGS[data_type][era]:
-      specific_settings += COMBINE_SETTINGS[data_type][era][bin]
+    if data_type    in COMBINE_SETTINGS and \
+        lepton_type in COMBINE_SETTINGS[data_type] and \
+        era         in COMBINE_SETTINGS[data_type][lepton_type] and \
+        bin         in COMBINE_SETTINGS[data_type][lepton_type][era]:
+      specific_settings += COMBINE_SETTINGS[data_type][lepton_type][era][bin]
 
     commandCombine = "combine -v 0 -M FitDiagnostics {} --out {} --plots --saveNormalizations --skipBOnlyFit --saveShapes " \
       "--saveWithUncertainties --maxFailedSteps 20 {}".format(current_workspace, fit_bin_dir, specific_settings)
@@ -219,6 +226,10 @@ if __name__ == "__main__":
     type = str, dest = 'input_data', metavar = 'directory', required = True,
     help = 'R|Input directory',
   )
+  parser.add_argument('-l', '--lepton-type',
+    type = str, dest = 'lepton_type', metavar = 'type', required = True, choices = [ 'electron', 'muon' ],
+    help = 'R|Lepton type',
+  )
   parser.add_argument('-t', '--data-type',
     type = str, dest = 'data_type', metavar = 'type', required = True, choices = [ 'data', 'pseudodata' ],
     help = 'R|Datacard type',
@@ -243,9 +254,16 @@ if __name__ == "__main__":
 
   print("Input:              {}".format(args.input))
   print("Data type:          {}".format(args.data_type))
+  print("Lepton type:        {}".format(args.lepton_type))
   print("Era:                {}".format(args.era))
   print("Output:             {}".format(args.output))
   print("Skipping bins:      {}".format(args.skip))
   print("Skipping zero bins: {}".format(args.skip_automatically))
 
-  make_fits(input_dir = args.output, data_type = args.data_type, era = args.era, skip_bins = skip_bins)
+  make_fits(
+    input_dir   = args.output,
+    data_type   = args.data_type,
+    lepton_type = args.lepton_type,
+    era         = args.era,
+    skip_bins   = skip_bins,
+  )
