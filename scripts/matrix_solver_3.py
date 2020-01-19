@@ -1,9 +1,9 @@
+#!/usr/bin/env python
+
+from tthAnalysis.ChargeFlipEstimation.matrix_solver import calculate_M, make_category_matrix, calculate_rates
+
 import numpy as np
 import math
-from plot_pulls import bin_names_composite, bin_names_single
-from utils import bin_names_to_numbers, fit_results_to_file
-from matrix_solver import calculate_M, make_category_matrix, calculate_rates
-
 
 def make_coefficient_matrix(exclude_bins=[]):
  coeffs = [[ 2,  0],
@@ -58,4 +58,3 @@ if __name__ == "__main__":
   exclude_bins = []
   categoryRatios = make_cat_ratios_from_gen()
   calculate_solution(categoryRatios, [], "asd", "asd", "gencheck")
-    

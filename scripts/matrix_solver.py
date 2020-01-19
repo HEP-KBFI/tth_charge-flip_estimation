@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, bin_names_to_numbers, fit_results_to_file
+from tthAnalysis.ChargeFlipEstimation.matrix_solver import calculate_M, make_category_matrix, calculate_rates
 
 import numpy as np
 import math
@@ -60,14 +61,6 @@ def make_cat_ratios_from_gen():
     cat_ratios.append((val, err))
   return cat_ratios
 
-#Turn ratios list to numpy array 
-def make_category_matrix(catRatios, weighted = True):
-  b = np.array(catRatios)
-  if weighted:
-    return (b[:,0], b[:,1])
-  else:
-    return (b[:,0], b[:,1]/b[:,1])
-
 #Seems to do the same as calculate...cannot remember why two different functions used
 def solve_matrix(catRatios):
   A = make_coefficient_matrix()
@@ -94,13 +87,6 @@ def print_solution(x):
 def make_gen_check():
   x = solve_matrix(make_cat_ratios_from_gen())
   print_solution(x)
-
-def calculate_M(Aw):
-  M = np.dot(np.linalg.inv( np.dot(np.transpose(Aw), Aw) ) , np.transpose(Aw))
-  return M
-
-def calculate_rates(M, b):
-  return np.dot(M, b)
 
 def calculate_uncertainties(M, deltab):
   uncs = [] 
@@ -169,5 +155,5 @@ if __name__ == "__main__":
         if len(fittype) > 0: fittypestring = "_"+fittype
         file_cats = "fit_output_%s_%s/results_cat%s.txt" % (datastring, fitname, fittypestring)
         categoryRatios = read_category_ratios(file_cats, exclude_bins)
-        calculate_solution(categoryRatios, exclude_bins, fitname, fittypesring, datastring)
+        calculate_solution(categoryRatios, exclude_bins, fitname, fittypestring, datastring)
   print_latex_header()     
