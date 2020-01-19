@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 from tthAnalysis.ChargeFlipEstimation.utils import BIN_NAMES_COMPOSITE, SmartFormatter
 
@@ -16,6 +17,7 @@ Script for creating pseudodata and datacards, which are suitable as input to cha
 for notation and background
 
 @author Andres Tiko <andres.tiko@cern.ch>
+@author Karl Ehatäht <karl.ehataht@cern.ch>
 """
 
 SAMPLES = [
