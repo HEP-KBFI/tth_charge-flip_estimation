@@ -282,7 +282,7 @@ if __name__ == "__main__":
   print("Data type:          {}".format(args.data_type))
   print("Lepton type:        {}".format(args.lepton_type))
   print("Era:                {}".format(args.era))
-  print("Skipping bins:      {}".format(args.skip))
+  print("Skipping bins:      {}".format(skip_bins))
   print("Skipping zero bins: {}".format(args.skip_automatically))
 
   make_fits(
