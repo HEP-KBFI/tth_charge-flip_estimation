@@ -57,7 +57,7 @@ COMBINE_SETTINGS = {
 
 def find_zero_bins(input_datacard, skip_bins):
   for bin in range(21):
-    input_datacard_filename = os.path.join(input_datacard, "SScards", "htt_SS_{}_13TeV.txt".format(bin))
+    input_datacard_filename = os.path.join(input_datacard, "cards", "SScards", "htt_SS_{}_13TeV.txt".format(bin))
     if not os.path.isfile(input_datacard_filename):
       raise ValueError("No such file: %s" % input_datacard_filename)
 
