@@ -282,7 +282,6 @@ if __name__ == "__main__":
   print("Data type:          {}".format(args.data_type))
   print("Lepton type:        {}".format(args.lepton_type))
   print("Era:                {}".format(args.era))
-  print("Output:             {}".format(args.output))
   print("Skipping bins:      {}".format(args.skip))
   print("Skipping zero bins: {}".format(args.skip_automatically))
 
