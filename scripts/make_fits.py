@@ -276,7 +276,7 @@ if __name__ == "__main__":
 
   skip_bins = args.skip
   if args.skip_automatically:
-    skip_bins = find_zero_bins(args.input, skip_bins)
+    skip_bins = find_zero_bins(args.input_data, skip_bins)
 
   print("Input:              {}".format(args.input_data))
   print("Data type:          {}".format(args.data_type))
