@@ -183,7 +183,7 @@ def create_pseudodata(
           dir_pseudo_rebinned.cd()
           histo_sys.Write()
 
-      data_histo.SetNameTitle("data_obs", "data_obs")
+      data_histo.SetNameTitle("data_obs_rebinned", "data_obs_rebinned")
 
       # Generate poisson yields from MC expectation for pseudodata
       for bin_idx in range(1, data_histo.GetNbinsX() + 1):
