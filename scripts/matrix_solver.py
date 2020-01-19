@@ -1,7 +1,9 @@
+#!/usr/bin/env python
+
+from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, bin_names_to_numbers, fit_results_to_file
+
 import numpy as np
 import math
-from plot_pulls import bin_names_composite, bin_names_single
-from utils import read_category_ratios, bin_names_to_numbers, fit_results_to_file
 
 """@file docstring
 Script for solving overconstrained equation system for charge flip estimation
