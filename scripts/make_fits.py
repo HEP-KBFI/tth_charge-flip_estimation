@@ -145,7 +145,7 @@ def read_fit_result(fit_file, postfit_file, bin):
 def failed_result(bin):
   return (int(bin), float('nan'), float('nan'), float('nan'))
 
-def make_fits(input_dir, data_type, lepton_type, era, skip_bins = None):
+def make_fits(input_dir, data_type, lepton_type, era, whitelist = None, skip_bins = None):
   assert(os.path.isdir(input_dir))
 
   datacard_dir = os.path.join(input_dir, "cards")
@@ -159,7 +159,8 @@ def make_fits(input_dir, data_type, lepton_type, era, skip_bins = None):
   fit_dir = os.path.join(input_dir, "fit")
   mkdir_p(fit_dir)
 
-  for bin in range(21):
+  bins = list(range(21)) if not whitelist else whitelist
+  for bin in bins:
     print("\n\n{} bin {}: ------------------------- \n".format(input_dir, bin))
 
     current_card_base = "card_{}.txt".format(bin)
@@ -268,6 +269,10 @@ if __name__ == "__main__":
     type = int, dest = 'skip', metavar = 'bin', required = False, nargs = '+', default = [],
     help = 'R|Skip bins',
   )
+  parser.add_argument('-w', '--whitelist',
+    type = int, dest = 'whitelist', metavar = 'bin', required = False, nargs = '+', default = [],
+    help = 'R|Whitelist bins (default: all)',
+  )
   parser.add_argument('-S', '--skip-automatically',
     type = bool, dest = 'skip_automatically', required = False, default = True,
     help = 'R|Skip bins that have no data and pseudodata',
@@ -283,6 +288,7 @@ if __name__ == "__main__":
   print("Lepton type:        {}".format(args.lepton_type))
   print("Era:                {}".format(args.era))
   print("Skipping bins:      {}".format(', '.join(map(str, skip_bins))))
+  print("Whitelisting bins:  {}".format(', '.join(map(str, args.whitelist))))
   print("Skipping zero bins: {}".format(args.skip_automatically))
 
   make_fits(
@@ -290,5 +296,6 @@ if __name__ == "__main__":
     data_type   = args.data_type,
     lepton_type = args.lepton_type,
     era         = args.era,
+    whitelist   = args.whitelist,
     skip_bins   = skip_bins,
   )
