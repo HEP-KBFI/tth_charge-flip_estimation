@@ -20,6 +20,10 @@ Script for running electron charge flip estimation fit
 @author Karl Ehatäht <karl.ehataht@cern.ch>
 """
 
+#TODO parallelize fits
+
+OBSERVATION_STR = 'observation'
+
 COMBINE_SETTINGS = {
   'data' : {
     'electron' : {
@@ -52,6 +56,27 @@ COMBINE_SETTINGS = {
 }
 
 def find_zero_bins(input_datacard, skip_bins):
+  for bin in range(21):
+    input_datacard_filename = os.path.join(input_datacard, "SScards", "htt_SS_{}_13TeV.txt".format(bin))
+    if not os.path.isfile(input_datacard_filename):
+      raise ValueError("No such file: %s" % input_datacard_filename)
+
+    found_observed = -1
+    with open(input_datacard_filename, 'r') as input_datacard_fptr:
+      for line in input_datacard_fptr:
+        line_stripped = line.rstrip()
+        if line_stripped.startswith(OBSERVATION_STR):
+          line_split = line_stripped.split()
+          assert(len(line_split) == 2)
+          found_observed = int(line_split[1])
+          break
+    if found_observed < 0:
+      raise RuntimeError(
+        "Unable to line that starts with '%s' from file %s" % (observation_str, input_datacard_filename)
+      )
+    elif found_observed == 0 and bin not in skip_bins:
+      skip_bins.append(skip_bins)
+
   return skip_bins
 
 def read_fit_result(fit_file, postfit_file, bin):
