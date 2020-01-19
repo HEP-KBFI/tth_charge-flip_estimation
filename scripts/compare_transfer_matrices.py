@@ -1,6 +1,8 @@
-from ROOT import TFile, TH2D, TCanvas
+#!/usr/bin/env python
+
+from tthAnalysis.ChargeFlipEstimation.utils import mkdir_p, bin_names_single
+
 import ROOT
-from utils import mkdir_p, bin_names_single
 
 """@file docstring
 Plot transfer matrices to illustrate differences in SS and OS in reconstructing pT and eta
@@ -20,7 +22,6 @@ def column_scaler(histo):
     col_sum = column_sum(histo, col)
     if col_sum == 0: continue
     for row in range(0, histo.GetNbinsY()+2):
-      #print col, row, histo.GetBinContent(col, row)
       histo.SetBinContent(col, row, histo.GetBinContent(col, row) / col_sum)
       histo.SetBinError(col, row, histo.GetBinError(col, row) / col_sum)
 
@@ -35,7 +36,6 @@ def row_scaler(histo):
     r_sum = row_sum(histo, row)
     if r_sum == 0: continue
     for col in range(0, histo.GetNbinsX()+2):
-      #print col, row, histo.GetBinContent(col, row)
       histo.SetBinContent(col, row, histo.GetBinContent(col, row) / r_sum)
       histo.SetBinError(col, row, histo.GetBinError(col, row) / r_sum)
 
@@ -45,12 +45,9 @@ def set_axes(histo):
     histo.GetYaxis().SetBinLabel(i,bin_names_single[i-1])
 
 def plot_transfer_matrix(histo, name, title):
-  c = TCanvas("Plot", "Plot", 800,800)
+  c = ROOT.TCanvas("Plot", "Plot", 800,800)
   ROOT.gStyle.SetOptStat(0)
   ROOT.gStyle.SetPaintTextFormat("1.3f");
-  #true_plot.SetLineColor(ROOT.kRed)
-  #true_plot.SetLineWidth(3)
-  #true_plot.GetYaxis().SetRangeUser(-0.006, 0.006)
   set_axes(histo)
   histo.GetXaxis().SetTitle("gen")
   histo.GetYaxis().SetTitle("rec")
@@ -66,7 +63,7 @@ def plot_transfer_matrix(histo, name, title):
 if __name__ == "__main__":
   ROOT.gROOT.SetBatch(True)
   infile = "/hdfs/local/ttH_2tau/andres/ttHAnalysis/2016/histosCF_summer_June6/histograms/charge_flip/histograms_harvested_stage2_charge_flip_Tight.root"
-  f = TFile(infile)   
+  f = ROOT.TFile(infile)
   transfer_matrix_gen_OS = f.Get("gen_ratio/transfer_matrix_noflip")
   transfer_matrix_gen_SS = f.Get("gen_ratio/transfer_matrix_flip")
 
@@ -83,4 +80,3 @@ if __name__ == "__main__":
 
   plot_transfer_matrix(transfer_matrix_gen_SS, "SS_rec", "SS, normalized for each reconstructed cetegory")
   plot_transfer_matrix(transfer_matrix_gen_OS, "OS_rec", "OS, normalized for each reconstructed cetegory")
-
