@@ -75,6 +75,7 @@ def find_zero_bins(input_datacard, skip_bins):
         "Unable to line that starts with '%s' from file %s" % (OBSERVATION_STR, input_datacard_filename)
       )
     elif found_observed == 0 and bin not in skip_bins:
+      print("Skipping bin {} because zero observations found")
       skip_bins.append(skip_bins)
 
   return skip_bins
@@ -277,7 +278,7 @@ if __name__ == "__main__":
   if args.skip_automatically:
     skip_bins = find_zero_bins(args.input, skip_bins)
 
-  print("Input:              {}".format(args.input))
+  print("Input:              {}".format(args.input_data))
   print("Data type:          {}".format(args.data_type))
   print("Lepton type:        {}".format(args.lepton_type))
   print("Era:                {}".format(args.era))
@@ -286,7 +287,7 @@ if __name__ == "__main__":
   print("Skipping zero bins: {}".format(args.skip_automatically))
 
   make_fits(
-    input_dir   = args.output,
+    input_dir   = args.input_data,
     data_type   = args.data_type,
     lepton_type = args.lepton_type,
     era         = args.era,
