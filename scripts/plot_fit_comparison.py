@@ -1,9 +1,8 @@
+#!/usr/bin/env python
+
+from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, get_bin_name
+
 import numpy as np
-import math
-import sys
-import os
-from plot_pulls import bin_names_composite, bin_names_single, readMisIdRatios
-from utils import read_category_ratios, get_bin_name
 
 """@file docstring
 Script for plotting comparisons between different types of fits (histogram-based, analytic and hybrid
