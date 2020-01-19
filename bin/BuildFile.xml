@@ -2,6 +2,7 @@
 <bin file="FitCF.cpp" name="FitCF"></bin>
 <bin file="analytic.cc" name="AnalyticFit"></bin>
 <bin file="analyticMu.cc" name="AnalyticFitMu"></bin>
+<use name="tthAnalysis/ChargeFlipEstimation"/>
 <use name="CombineHarvester/CombineTools"/>
 <use name="FWCore/Utilities"/>
 <use name="root"/>
