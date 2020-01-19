@@ -72,7 +72,7 @@ def find_zero_bins(input_datacard, skip_bins):
           break
     if found_observed < 0:
       raise RuntimeError(
-        "Unable to line that starts with '%s' from file %s" % (observation_str, input_datacard_filename)
+        "Unable to line that starts with '%s' from file %s" % (OBSERVATION_STR, input_datacard_filename)
       )
     elif found_observed == 0 and bin not in skip_bins:
       skip_bins.append(skip_bins)
