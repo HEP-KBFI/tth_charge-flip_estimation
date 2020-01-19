@@ -68,14 +68,14 @@ def find_zero_bins(input_datacard, skip_bins):
         if line_stripped.startswith(OBSERVATION_STR):
           line_split = line_stripped.split()
           assert(len(line_split) == 2)
-          found_observed = int(line_split[1])
+          found_observed = int(float(line_split[1]))
           break
     if found_observed < 0:
       raise RuntimeError(
         "Unable to line that starts with '%s' from file %s" % (OBSERVATION_STR, input_datacard_filename)
       )
     elif found_observed == 0 and bin not in skip_bins:
-      print("Skipping bin {} because zero observations found")
+      print("Skipping bin {} because zero observations found".format(bin))
       skip_bins.append(skip_bins)
 
   return skip_bins
