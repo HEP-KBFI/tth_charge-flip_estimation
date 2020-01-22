@@ -21,6 +21,8 @@ Script for running electron charge flip estimation fit
 """
 
 #TODO parallelize fits
+#TODO dump stdout & stderr to file
+#TODO figure out what to do with combine_logger.out and higgsCombineTest.FitDiagnostics.mH120.root files
 
 OBSERVATION_STR = 'observation'
 
@@ -168,11 +170,11 @@ def make_fits(input_dir, data_type, lepton_type, era, whitelist = None, skip_bin
     current_workspace = os.path.join(datacard_dir, "workspace_{}.root".format(bin))
 
     command_combineCards = "combineCards.py " \
-      "pass={datacard_dir}/SScards/htt_SS_{bin}_13TeV.txt " \
-      "fail={datacard_dir}/OScards/htt_OS_{bin}_13TeV.txt > {current_card}".format(
+      "pass=SScards/htt_SS_{bin}_13TeV.txt " \
+      "fail=OScards/htt_OS_{bin}_13TeV.txt > {current_card}".format(
         datacard_dir = datacard_dir,
         bin          = bin,
-        current_card = current_card,
+        current_card = current_card_base,
     )
     print("Running: {}".format(command_combineCards))
 
@@ -181,7 +183,7 @@ def make_fits(input_dir, data_type, lepton_type, era, whitelist = None, skip_bin
       fit_results.append(failed_result(bin))
       continue
     else:
-      subprocess.call(command_combineCards, shell = True)
+      subprocess.call(command_combineCards, shell = True, cwd = datacard_dir)
 
     # Hack to prevent PostFitShapesFromWorkspace messing up directory structure - copy datacard to current directory
     current_card_backup = '{}.{}'.format(current_card, 'bak')
