@@ -9,7 +9,6 @@ import subprocess
 import os
 import math
 import argparse
-import shutil
 
 ROOT.gROOT.SetBatch(True)
 
@@ -21,8 +20,6 @@ Script for running electron charge flip estimation fit
 """
 
 #TODO parallelize fits
-#TODO dump stdout & stderr to file
-#TODO figure out what to do with combine_logger.out and higgsCombineTest.FitDiagnostics.mH120.root files
 
 OBSERVATION_STR = 'observation'
 
@@ -185,10 +182,6 @@ def make_fits(input_dir, data_type, lepton_type, era, whitelist = None, skip_bin
     else:
       subprocess.call(command_combineCards, shell = True, cwd = datacard_dir)
 
-    # Hack to prevent PostFitShapesFromWorkspace messing up directory structure - copy datacard to current directory
-    current_card_backup = '{}.{}'.format(current_card, 'bak')
-    shutil.copyfile(current_card, current_card_backup)
-
     # 2. Make Roofit workspace from datacard
     command_text2ws = "text2workspace.py {} -o {} -P HiggsAnalysis.CombinedLimit.TagAndProbeModel:tagAndProbe".format(
       current_card, current_workspace
@@ -210,16 +203,22 @@ def make_fits(input_dir, data_type, lepton_type, era, whitelist = None, skip_bin
         bin         in COMBINE_SETTINGS[data_type][lepton_type][era]:
       specific_settings += COMBINE_SETTINGS[data_type][lepton_type][era][bin]
 
-    commandCombine = "combine -v 0 -M FitDiagnostics {} --out {} --plots --saveNormalizations --skipBOnlyFit --saveShapes " \
-      "--saveWithUncertainties --maxFailedSteps 20 {}".format(current_workspace, fit_bin_dir, specific_settings)
+    combine_out = os.path.join(datacard_dir, "combine_out_{}.log".format(bin))
+    commandCombine = "combine -v 0 -M FitDiagnostics {} --out {} --plots --saveNormalizations --skipBOnlyFit " \
+      "--saveShapes --saveWithUncertainties --maxFailedSteps 20 {} &> {}".format(
+        current_workspace, fit_bin_dir, specific_settings, combine_out
+    )
     print("Running: {}".format(commandCombine))
-    subprocess.call(commandCombine, shell = True)
+    subprocess.call(commandCombine, shell = True, cwd = fit_bin_dir)
 
     # 4. Create postfit plots
     fit_file = os.path.join(fit_bin_dir, "fitDiagnostics.root")
     postfit_file = os.path.join(fit_bin_dir, "output_postfit.root")
+    fit_out = os.path.join(fit_bin_dir, "out.log")
     command_postFit = "PostFitShapesFromWorkspace -d {} -w {} -o {} -f {}:fit_s " \
-                      "--postfit --sampling".format(current_card_backup, current_workspace, postfit_file, fit_file)
+                      "--postfit --sampling &> {}".format(
+      current_card, current_workspace, postfit_file, fit_file, fit_out
+    )
     print("Running: {}".format(command_postFit))
     subprocess.call(command_postFit, shell = True)
 
@@ -244,7 +243,7 @@ def make_fits(input_dir, data_type, lepton_type, era, whitelist = None, skip_bin
   # Output fit results
   with open(os.path.join(fit_dir, "results_cat.txt"), "w") as f:
     for i, fr in enumerate(fit_results):
-      print("RES: %d   %d, %.8f + %.8f - %.8f" % (i, fr[0], fr[1], fr[2], fr[3]))
+      print("Result #%d: bin = %d, r = %.8f + %.8f - %.8f" % (i, fr[0], fr[1], fr[2], fr[3]))
       f.write("%d, %.8f, %.8f, %.8f\n" % (fr[0], fr[1], fr[2], fr[3]))
 
 if __name__ == "__main__":
@@ -294,7 +293,7 @@ if __name__ == "__main__":
   print("Skipping zero bins: {}".format(args.skip_automatically))
 
   make_fits(
-    input_dir   = args.input_data,
+    input_dir   = os.path.abspath(args.input_data),
     data_type   = args.data_type,
     lepton_type = args.lepton_type,
     era         = args.era,
