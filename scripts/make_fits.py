@@ -227,8 +227,15 @@ def fit_bin(input_dir, bin, settings, skip_bins):
     print("{} bin {} fit did not converge: {}".format(input_dir, bin, fit_status))
     return failed_result(bin, 2)
 
-def make_fits(input_dir, data_type, lepton_type, era, whitelist = None, skip_bins = None, jobs = -1):
+def make_fits(input_dir, output_file, data_type, lepton_type, era, whitelist = None, skip_bins = None, jobs = -1, force = False):
   assert(os.path.isdir(input_dir))
+  output_dir = os.path.dirname(output_file)
+  if not os.path.isdir(output_dir):
+    if os.path.isfile(output_dir):
+      raise ValueError("Cannot create directory %d because it's a file" % output_dir)
+    if not force:
+      raise ValueError("Use -f/--force to create output directory %d" % output_dir)
+    os.makedirs(output_dir)
 
   fit_dir = os.path.join(input_dir, "fit")
   mkdir_p(fit_dir)
@@ -257,17 +264,18 @@ def make_fits(input_dir, data_type, lepton_type, era, whitelist = None, skip_bin
   fit_pool.close()
   fit_pool.join()
 
-  if fit_results_failed:
-    with open(os.path.join(fit_dir, "failedFits.txt"), "w") as fFailedFits:
-      for bin in fit_results_failed:
-        fFailedFits.write("{} \t {} \n".format(input_dir, bin))
-
   # Output fit results
-  with open(os.path.join(fit_dir, "results_cat.txt"), "w") as f:
+  with open(output_file, "w") as f:
     for bin in sorted(fit_results.keys()):
       fr = fit_results[bin]
       print("Bin = %d, r = %.8f + %.8f - %.8f" % (bin, fr[0], fr[1], fr[2]))
       f.write("%d, %.8f, %.8f, %.8f\n" % (bin, fr[0], fr[1], fr[2]))
+
+  if fit_results_failed:
+    output_file_failed = '{}.failed'.format(output_file)
+    with open(output_file_failed, "w") as fFailedFits:
+      for bin in fit_results_failed:
+        fFailedFits.write("{} \t {} \n".format(input_dir, bin))
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(
@@ -276,6 +284,10 @@ if __name__ == "__main__":
   parser.add_argument('-i', '--input',
     type = str, dest = 'input_data', metavar = 'directory', required = True,
     help = 'R|Input directory',
+  )
+  parser.add_argument('-o', '--output',
+    type = str, dest = 'output', metavar = 'file', required = True,
+    help = 'R|Output file',
   )
   parser.add_argument('-l', '--lepton-type',
     type = str, dest = 'lepton_type', metavar = 'type', required = True, choices = [ 'electron', 'muon' ],
@@ -305,6 +317,10 @@ if __name__ == "__main__":
     type = bool, dest = 'skip_automatically', required = False, default = True,
     help = 'R|Skip bins that have no data and pseudodata',
   )
+  parser.add_argument('-f', '--force',
+    dest = 'force', action = 'store_true', default = False, required = False,
+    help = 'R|Create directory for the output file',
+  )
   args = parser.parse_args()
 
   skip_bins = args.skip
@@ -312,6 +328,7 @@ if __name__ == "__main__":
     skip_bins = find_zero_bins(args.input_data, skip_bins)
 
   print("Input:              {}".format(args.input_data))
+  print("Output:             {}".format(args.output))
   print("Data type:          {}".format(args.data_type))
   print("Lepton type:        {}".format(args.lepton_type))
   print("Era:                {}".format(args.era))
@@ -322,10 +339,12 @@ if __name__ == "__main__":
 
   make_fits(
     input_dir   = os.path.abspath(args.input_data),
+    output_file = os.path.abspath(args.output),
     data_type   = args.data_type,
     lepton_type = args.lepton_type,
     era         = args.era,
     whitelist   = args.whitelist,
     skip_bins   = skip_bins,
     jobs        = args.jobs,
+    force       = args.force,
   )
