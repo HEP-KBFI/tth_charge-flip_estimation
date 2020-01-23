@@ -170,12 +170,12 @@ def fit_bin(input_dir, bin, settings, skip_bins):
       bin          = bin,
       current_card = current_card_base,
   )
-  print("Running: {}".format(command_combineCards))
 
   # 1. step: combine SS and OS datacatds
   if skip_bins:
     return failed_result(bin, 1)
   else:
+    print("Running: {}".format(command_combineCards))
     subprocess.call(command_combineCards, shell = True, cwd = datacard_dir)
 
   # 2. Make Roofit workspace from datacard
