@@ -9,6 +9,9 @@ import subprocess
 import os
 import math
 import argparse
+import multiprocessing
+import sys
+import signal
 
 ROOT.gROOT.SetBatch(True)
 
@@ -19,7 +22,8 @@ Script for running electron charge flip estimation fit
 @author Karl Ehatäht <karl.ehataht@cern.ch>
 """
 
-#TODO parallelize fits
+fit_results = {}
+fit_results_failed = []
 
 OBSERVATION_STR = 'observation'
 
@@ -75,9 +79,12 @@ def find_zero_bins(input_datacard, skip_bins):
       )
     elif found_observed == 0 and bin not in skip_bins:
       print("Skipping bin {} because zero observations found".format(bin))
-      skip_bins.append(skip_bins)
+      skip_bins.append(bin)
 
   return skip_bins
+
+def failed_result(bin, status):
+  return (int(bin), float('nan'), float('nan'), float('nan'), status)
 
 def read_fit_result(fit_file, postfit_file, bin):
   postfit_file_ptr = ROOT.TFile(postfit_file, 'read')
@@ -92,7 +99,7 @@ def read_fit_result(fit_file, postfit_file, bin):
   if fit_status != 0:
     # raise AssertionError("Input fit %d did not converge! Fit status %d." % (bin, fit_status))
     print("Input fit {} did not converge! Fit status {}".format(bin, fit_status))
-    return ()
+    return None
 
   tree.Draw("SF>>hist")
   mu = (ROOT.gDirectory.Get("hist")).GetMean()
@@ -121,12 +128,12 @@ def read_fit_result(fit_file, postfit_file, bin):
     else:
       # raise
       print("fail_histo integral = 0")
-      return ()
+      return None
 
   if abs(muHiErr / muLoErr) > 2 or abs(muHiErr / muLoErr) < 1. / 2:
     # In this case probably failed to find crossing, use symmetric error
     print("Strange asymmetric errors! Probably failed to find crossing.")
-    return ()
+    return None
 
   fitHiErr = muHiErr / mu * bestFit
   fitLoErr = muLoErr / mu * bestFit
@@ -139,101 +146,116 @@ def read_fit_result(fit_file, postfit_file, bin):
     fitLoErr = fitHiErr
     print("\t\t changed >>> r: {},  fitHiErr: {}, fitLoErr: {}".format(bestFit, fitHiErr, fitLoErr))
 
-  return (int(bin), bestFit, fitHiErr, fitLoErr)
+  return (int(bin), bestFit, fitHiErr, fitLoErr, 0)
 
-def failed_result(bin):
-  return (int(bin), float('nan'), float('nan'), float('nan'))
+def update_fit_results(results):
+  bin, bestFit, fitHiErr, fitLoErr, status = results
+  if status > 0:
+    fit_results_failed.append(bin)
+  else:
+    fit_results[bin] = (bestFit, fitHiErr, fitLoErr)
 
-def make_fits(input_dir, data_type, lepton_type, era, whitelist = None, skip_bins = None):
-  assert(os.path.isdir(input_dir))
+def fit_bin(input_dir, bin, settings, skip_bins):
+  print("{} bin {}: ------------------------- ".format(input_dir, bin))
 
   datacard_dir = os.path.join(input_dir, "cards")
-  workspace_dir = os.path.join(input_dir, "workspaces")
-  mkdir_p(datacard_dir)
-  mkdir_p(workspace_dir)
+  current_card_base = "card_{}.txt".format(bin)
+  current_card = os.path.join(datacard_dir, current_card_base)
+  current_workspace = os.path.join(datacard_dir, "workspace_{}.root".format(bin))
 
-  fit_results = []
-  fit_results_failed = []
+  command_combineCards = "combineCards.py " \
+    "pass=SScards/htt_SS_{bin}_13TeV.txt " \
+    "fail=OScards/htt_OS_{bin}_13TeV.txt > {current_card}".format(
+      datacard_dir = datacard_dir,
+      bin          = bin,
+      current_card = current_card_base,
+  )
+  print("Running: {}".format(command_combineCards))
+
+  # 1. step: combine SS and OS datacatds
+  if skip_bins:
+    return failed_result(bin, 1)
+  else:
+    subprocess.call(command_combineCards, shell = True, cwd = datacard_dir)
+
+  # 2. Make Roofit workspace from datacard
+  command_text2ws = "text2workspace.py {} -o {} -P HiggsAnalysis.CombinedLimit.TagAndProbeModel:tagAndProbe".format(
+    current_card, current_workspace
+  )
+  print("Running: {}".format(command_text2ws))
+  subprocess.call(command_text2ws, shell = True)
+
+  # Specify output directory for fit results
+  fit_bin_dir = os.path.join(input_dir, "bin{}".format(bin))
+  mkdir_p(fit_bin_dir)
+
+  # 3. Perform fit with combine
+  # Default fit settings specified in else clause
+  # But always do not give convergence - settings for specific fits defined here, adjust as necessary:
+  specific_settings = "--robustFit 1 "
+  if settings:
+    specific_settings += settings
+
+  combine_out = os.path.join(datacard_dir, "combine_out_{}.log".format(bin))
+  commandCombine = "combine -v 0 -M FitDiagnostics {} --out {} --plots --saveNormalizations --skipBOnlyFit " \
+    "--saveShapes --saveWithUncertainties --maxFailedSteps 20 {} &> {}".format(
+      current_workspace, fit_bin_dir, specific_settings, combine_out
+  )
+  print("Running: {}".format(commandCombine))
+  subprocess.call(commandCombine, shell = True, cwd = fit_bin_dir)
+
+  # 4. Create postfit plots
+  fit_file = os.path.join(fit_bin_dir, "fitDiagnostics.root")
+  postfit_file = os.path.join(fit_bin_dir, "output_postfit.root")
+  fit_out = os.path.join(fit_bin_dir, "out.log")
+  command_postFit = "PostFitShapesFromWorkspace -d {} -w {} -o {} -f {}:fit_s " \
+                    "--postfit --sampling &> {}".format(
+    current_card, current_workspace, postfit_file, fit_file, fit_out
+  )
+  print("Running: {}".format(command_postFit))
+  subprocess.call(command_postFit, shell = True)
+
+  # 5. Add to list of fit results
+  fit_status = ()
+  if os.path.exists(fit_file) and os.path.exists(postfit_file):
+    fit_status = read_fit_result(fit_file, postfit_file, bin = bin)
+
+  print("fit_status: {}".format(fit_status))
+  if fit_status:
+    return fit_status
+  else:
+    print("{} bin {} fit did not converge: {}".format(input_dir, bin, fit_status))
+    return failed_result(bin, 2)
+
+def make_fits(input_dir, data_type, lepton_type, era, whitelist = None, skip_bins = None, jobs = -1):
+  assert(os.path.isdir(input_dir))
 
   fit_dir = os.path.join(input_dir, "fit")
   mkdir_p(fit_dir)
 
   bins = list(range(21)) if not whitelist else whitelist
+  original_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
+  fit_pool = multiprocessing.Pool(jobs if jobs > 0 else (multiprocessing.cpu_count() - 1))
+  signal.signal(signal.SIGINT, original_sigint_handler)
   for bin in bins:
-    print("\n\n{} bin {}: ------------------------- \n".format(input_dir, bin))
-
-    current_card_base = "card_{}.txt".format(bin)
-    current_card = os.path.join(datacard_dir, current_card_base)
-    current_workspace = os.path.join(datacard_dir, "workspace_{}.root".format(bin))
-
-    command_combineCards = "combineCards.py " \
-      "pass=SScards/htt_SS_{bin}_13TeV.txt " \
-      "fail=OScards/htt_OS_{bin}_13TeV.txt > {current_card}".format(
-        datacard_dir = datacard_dir,
-        bin          = bin,
-        current_card = current_card_base,
-    )
-    print("Running: {}".format(command_combineCards))
-
-    # 1. step: combine SS and OS datacatds
-    if skip_bins and bin in skip_bins:
-      fit_results.append(failed_result(bin))
-      continue
-    else:
-      subprocess.call(command_combineCards, shell = True, cwd = datacard_dir)
-
-    # 2. Make Roofit workspace from datacard
-    command_text2ws = "text2workspace.py {} -o {} -P HiggsAnalysis.CombinedLimit.TagAndProbeModel:tagAndProbe".format(
-      current_card, current_workspace
-    )
-    print("Running: {}".format(command_text2ws))
-    subprocess.call(command_text2ws, shell = True)
-
-    # Specify output directory for fit results
-    fit_bin_dir = os.path.join(input_dir, "bin{}".format(bin))
-    mkdir_p(fit_bin_dir)
-
-    # 3. Perform fit with combine
-    # Default fit settings specified in else clause
-    # But always do not give convergence - settings for specific fits defined here, adjust as necessary:
-    specific_settings = "--robustFit 1 "
-    if data_type    in COMBINE_SETTINGS and \
+    settings = ''
+    if data_type in COMBINE_SETTINGS and \
         lepton_type in COMBINE_SETTINGS[data_type] and \
-        era         in COMBINE_SETTINGS[data_type][lepton_type] and \
-        bin         in COMBINE_SETTINGS[data_type][lepton_type][era]:
-      specific_settings += COMBINE_SETTINGS[data_type][lepton_type][era][bin]
+        era in COMBINE_SETTINGS[data_type][lepton_type] and \
+        bin in COMBINE_SETTINGS[data_type][lepton_type][era]:
+      settings = COMBINE_SETTINGS[data_type][lepton_type][era][bin]
+    try:
+      fit_pool.apply_async(
+        fit_bin,
+        args = (input_dir, bin, settings, skip_bins and bin in skip_bins),
+        callback = update_fit_results,
+      )
+    except KeyboardInterrupt:
+      fit_pool.terminate()
+      sys.exit(1)
 
-    combine_out = os.path.join(datacard_dir, "combine_out_{}.log".format(bin))
-    commandCombine = "combine -v 0 -M FitDiagnostics {} --out {} --plots --saveNormalizations --skipBOnlyFit " \
-      "--saveShapes --saveWithUncertainties --maxFailedSteps 20 {} &> {}".format(
-        current_workspace, fit_bin_dir, specific_settings, combine_out
-    )
-    print("Running: {}".format(commandCombine))
-    subprocess.call(commandCombine, shell = True, cwd = fit_bin_dir)
-
-    # 4. Create postfit plots
-    fit_file = os.path.join(fit_bin_dir, "fitDiagnostics.root")
-    postfit_file = os.path.join(fit_bin_dir, "output_postfit.root")
-    fit_out = os.path.join(fit_bin_dir, "out.log")
-    command_postFit = "PostFitShapesFromWorkspace -d {} -w {} -o {} -f {}:fit_s " \
-                      "--postfit --sampling &> {}".format(
-      current_card, current_workspace, postfit_file, fit_file, fit_out
-    )
-    print("Running: {}".format(command_postFit))
-    subprocess.call(command_postFit, shell = True)
-
-    # 5. Add to list of fit results
-    fit_status = ()
-    if os.path.exists(fit_file) and os.path.exists(postfit_file):
-      fit_status = read_fit_result(fit_file, postfit_file, bin = bin)
-
-    print("fit_status: {}".format(fit_status))
-    if fit_status:
-      fit_results.append(fit_status)
-      print(">>> fitResults appended")
-    else:
-      print("{} bin {} fit did not converge: {}".format(input_dir, bin, fit_status))
-      fit_results_failed.append(bin)
+  fit_pool.close()
+  fit_pool.join()
 
   if fit_results_failed:
     with open(os.path.join(fit_dir, "failedFits.txt"), "w") as fFailedFits:
@@ -242,9 +264,10 @@ def make_fits(input_dir, data_type, lepton_type, era, whitelist = None, skip_bin
 
   # Output fit results
   with open(os.path.join(fit_dir, "results_cat.txt"), "w") as f:
-    for i, fr in enumerate(fit_results):
-      print("Result #%d: bin = %d, r = %.8f + %.8f - %.8f" % (i, fr[0], fr[1], fr[2], fr[3]))
-      f.write("%d, %.8f, %.8f, %.8f\n" % (fr[0], fr[1], fr[2], fr[3]))
+    for bin in sorted(fit_results.keys()):
+      fr = fit_results[bin]
+      print("Bin = %d, r = %.8f + %.8f - %.8f" % (bin, fr[0], fr[1], fr[2]))
+      f.write("%d, %.8f, %.8f, %.8f\n" % (bin, fr[0], fr[1], fr[2]))
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(
@@ -270,6 +293,10 @@ if __name__ == "__main__":
     type = int, dest = 'skip', metavar = 'bin', required = False, nargs = '+', default = [],
     help = 'R|Skip bins',
   )
+  parser.add_argument('-j', '--jobs',
+    type = int, dest = 'jobs', metavar = 'bin', required = False, default = 16,
+    help = 'R|Number of parallel fits',
+  )
   parser.add_argument('-w', '--whitelist',
     type = int, dest = 'whitelist', metavar = 'bin', required = False, nargs = '+', default = [],
     help = 'R|Whitelist bins (default: all)',
@@ -291,6 +318,7 @@ if __name__ == "__main__":
   print("Skipping bins:      {}".format(', '.join(map(str, skip_bins))))
   print("Whitelisting bins:  {}".format(', '.join(map(str, args.whitelist))))
   print("Skipping zero bins: {}".format(args.skip_automatically))
+  print("# parallel fits:    {}".format(args.jobs))
 
   make_fits(
     input_dir   = os.path.abspath(args.input_data),
@@ -299,4 +327,5 @@ if __name__ == "__main__":
     era         = args.era,
     whitelist   = args.whitelist,
     skip_bins   = skip_bins,
+    jobs        = args.jobs,
   )
