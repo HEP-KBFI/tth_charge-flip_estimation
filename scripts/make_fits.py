@@ -237,9 +237,6 @@ def make_fits(input_dir, output_file, data_type, lepton_type, era, whitelist = N
       raise ValueError("Use -f/--force to create output directory %d" % output_dir)
     os.makedirs(output_dir)
 
-  fit_dir = os.path.join(input_dir, "fit")
-  mkdir_p(fit_dir)
-
   bins = list(range(21)) if not whitelist else whitelist
   original_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
   fit_pool = multiprocessing.Pool(jobs if jobs > 0 else (multiprocessing.cpu_count() - 1))
