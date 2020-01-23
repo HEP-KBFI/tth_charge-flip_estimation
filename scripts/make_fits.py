@@ -30,18 +30,18 @@ OBSERVATION_STR = 'observation'
 COMBINE_SETTINGS = {
   'data' : {
     'electron' : {
-      '2016' : {
+      2016 : {
         13 : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
         17 : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
       },
-      '2017' : {
+      2017 : {
         3  : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 2000",
         4  : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000",
         5  : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 2000",
         8  : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000",
         15 : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
       },
-      '2018' : {
+      2018 : {
         2  : "--cminDefaultMinimizerType Minuit --cminDefaultMinimizerStrategy 0  --cminDefaultMinimizerTolerance 25 --rMin -4.0 --rMax 20.0",
         5  : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 25",
         11 : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000",
@@ -51,7 +51,7 @@ COMBINE_SETTINGS = {
   },
   'pseudodata' : {
     'electron' : {
-      '2016' : {
+      2016 : {
         2  : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
       },
     },
@@ -243,10 +243,10 @@ def make_fits(input_dir, output_file, data_type, lepton_type, era, whitelist = N
   signal.signal(signal.SIGINT, original_sigint_handler)
   for bin in bins:
     settings = ''
-    if data_type in COMBINE_SETTINGS and \
+    if data_type    in COMBINE_SETTINGS and \
         lepton_type in COMBINE_SETTINGS[data_type] and \
-        era in COMBINE_SETTINGS[data_type][lepton_type] and \
-        bin in COMBINE_SETTINGS[data_type][lepton_type][era]:
+        era         in COMBINE_SETTINGS[data_type][lepton_type] and \
+        bin         in COMBINE_SETTINGS[data_type][lepton_type][era]:
       settings = COMBINE_SETTINGS[data_type][lepton_type][era][bin]
     try:
       fit_pool.apply_async(
