@@ -22,6 +22,15 @@ Script for running electron charge flip estimation fit
 @author Karl Ehatäht <karl.ehataht@cern.ch>
 """
 
+#TODO consider looping over different fit parameters until convergence is achieved:
+# "--robustFit 1 ",
+# "--robustFit 1 --cminDefaultMinimizerStrategy 0 ",
+# "--robustFit 1 --cminDefaultMinimizerType Minuit --cminDefaultMinimizerStrategy 0 ",
+# "--robustFit 1 --cminDefaultMinimizerType Minuit --cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 ",
+# "--robustFit 1 --cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 100 ",
+# "--robustFit 1 --cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000 ",
+# "--robustFit 1 --cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 2000 ",
+
 fit_results = {}
 fit_results_failed = []
 
@@ -31,6 +40,7 @@ COMBINE_SETTINGS = {
   'data' : {
     'electron' : {
       2016 : {
+        0  : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 100",
         13 : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
         17 : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
       },
