@@ -282,7 +282,7 @@ def make_fits(input_dir, output_file, data_type, lepton_type, era, whitelist = N
     output_file_failed = '{}.failed'.format(output_file)
     with open(output_file_failed, "w") as fFailedFits:
       for bin in fit_results_failed:
-        fFailedFits.write("{} \n".format(input_dir, bin))
+        fFailedFits.write("{}\n".format(input_dir, bin))
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(
