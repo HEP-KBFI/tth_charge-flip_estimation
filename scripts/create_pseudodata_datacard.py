@@ -183,7 +183,12 @@ def create_pseudodata(
 
       # Generate poisson yields from MC expectation for pseudodata
       for bin_idx in range(1, data_histo.GetNbinsX() + 1):
-        data_histo.SetBinContent(bin_idx, np.random.poisson(data_histo.GetBinContent(bin_idx)))
+        binCount1 = data_histo.GetBinContent(bin_idx)
+        binCount2 = np.random.poisson(data_histo.GetBinContent(bin_idx))
+        if abs(binCount2 - 0.) < 0.000005:
+          while abs(binCount2 - 0.) < 0.000005:
+            binCount2 = np.random.poisson(binCount1)
+        data_histo.SetBinContent(bin_idx, binCount2)
         data_histo.Sumw2(ROOT.kFALSE)
       dir_pseudo_rebinned.cd()
       data_histo.Write()
