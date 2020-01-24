@@ -97,6 +97,10 @@ struct DatacardParams
     {
       std::vector<std::string> tokens;
       boost::split(tokens, skip_entry, boost::is_any_of("+"));
+      if(tokens.empty())
+      {
+        return;
+      }
       if(tokens.size() != 3)
       {
         throw cms::Exception(__func__) << "Invalid argument: " << skip_entry;
@@ -353,7 +357,7 @@ create_datacard(const DatacardParams & params)
     const std::string folder_common = Form("%s/common", folder.data());
     const std::string output_filename = Form("%s/htt_%s.input.root", folder_common.data(), charge.data());
 
-    if(! boost::filesystem::create_directories(folder_common))
+    if(! boost::filesystem::is_directory(folder_common) && ! boost::filesystem::create_directories(folder_common))
     {
       std::cerr << "Unable to create directory: " << folder_common << '\n';
       return false;
