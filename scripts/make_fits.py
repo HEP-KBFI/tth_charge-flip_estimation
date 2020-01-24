@@ -22,51 +22,20 @@ Script for running electron charge flip estimation fit
 @author Karl Ehatäht <karl.ehataht@cern.ch>
 """
 
-#TODO consider looping over different fit parameters until convergence is achieved:
-# "--robustFit 1 ",
-# "--robustFit 1 --cminDefaultMinimizerStrategy 0 ",
-# "--robustFit 1 --cminDefaultMinimizerType Minuit --cminDefaultMinimizerStrategy 0 ",
-# "--robustFit 1 --cminDefaultMinimizerType Minuit --cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 ",
-# "--robustFit 1 --cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 100 ",
-# "--robustFit 1 --cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000 ",
-# "--robustFit 1 --cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 2000 ",
-
 fit_results = {}
 fit_results_failed = []
 
 OBSERVATION_STR = 'observation'
 
-COMBINE_SETTINGS = {
-  'data' : {
-    'electron' : {
-      2016 : {
-        0  : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 100",
-        13 : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
-        17 : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
-      },
-      2017 : {
-        3  : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 2000",
-        4  : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000",
-        5  : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 2000",
-        8  : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000",
-        15 : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
-      },
-      2018 : {
-        2  : "--cminDefaultMinimizerType Minuit --cminDefaultMinimizerStrategy 0  --cminDefaultMinimizerTolerance 25 --rMin -4.0 --rMax 20.0",
-        5  : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 25",
-        11 : "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000",
-        16 : "--cminDefaultMinimizerType Minuit --cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0",
-      },
-    },
-  },
-  'pseudodata' : {
-    'electron' : {
-      2016 : {
-        2  : "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
-      },
-    },
-  },
-}
+COMBINE_SETTINGS = [
+  "",
+  "--cminDefaultMinimizerStrategy 0",
+  "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit",
+  "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit --rMin -4.0 --rMax 20.0",
+  "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 100",
+  "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000",
+  "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 2000",
+]
 
 def find_zero_bins(input_datacard, skip_bins):
   for bin in range(21):
@@ -165,7 +134,7 @@ def update_fit_results(results):
   else:
     fit_results[bin] = (bestFit, fitHiErr, fitLoErr)
 
-def fit_bin(input_dir, bin, settings, skip_bins):
+def fit_bin(input_dir, bin, skip_bins):
   print("{} bin {}: ------------------------- ".format(input_dir, bin))
 
   datacard_dir = os.path.join(input_dir, "cards")
@@ -202,42 +171,44 @@ def fit_bin(input_dir, bin, settings, skip_bins):
   # 3. Perform fit with combine
   # Default fit settings specified in else clause
   # But always do not give convergence - settings for specific fits defined here, adjust as necessary:
-  specific_settings = "--robustFit 1 "
-  if settings:
-    specific_settings += settings
-
   combine_out = os.path.join(datacard_dir, "combine_out_{}.log".format(bin))
-  commandCombine = "combine -v 0 -M FitDiagnostics {} --out {} --plots --saveNormalizations --skipBOnlyFit " \
-    "--saveShapes --saveWithUncertainties --maxFailedSteps 20 {} &> {}".format(
-      current_workspace, fit_bin_dir, specific_settings, combine_out
-  )
-  print("Running: {}".format(commandCombine))
-  subprocess.call(commandCombine, shell = True, cwd = fit_bin_dir)
-
-  # 4. Create postfit plots
   fit_file = os.path.join(fit_bin_dir, "fitDiagnostics.root")
   postfit_file = os.path.join(fit_bin_dir, "output_postfit.root")
   fit_out = os.path.join(fit_bin_dir, "out.log")
-  command_postFit = "PostFitShapesFromWorkspace -d {} -w {} -o {} -f {}:fit_s " \
-                    "--postfit --sampling &> {}".format(
-    current_card, current_workspace, postfit_file, fit_file, fit_out
-  )
-  print("Running: {}".format(command_postFit))
-  subprocess.call(command_postFit, shell = True)
 
-  # 5. Add to list of fit results
   fit_status = ()
-  if os.path.exists(fit_file) and os.path.exists(postfit_file):
-    fit_status = read_fit_result(fit_file, postfit_file, bin = bin)
+  common_settings = "--robustFit 1 "
+  for settings in COMBINE_SETTINGS:
+    specific_settings = common_settings + settings
+    commandCombine = "combine -v 0 -M FitDiagnostics {} --out {} --plots --saveNormalizations --skipBOnlyFit " \
+      "--saveShapes --saveWithUncertainties --maxFailedSteps 20 {} &> {}".format(
+        current_workspace, fit_bin_dir, specific_settings, combine_out
+    )
+    print("Running: {}".format(commandCombine))
+    subprocess.call(commandCombine, shell = True, cwd = fit_bin_dir)
 
-  print("fit_status: {}".format(fit_status))
+    # 4. Create postfit plots
+    command_postFit = "PostFitShapesFromWorkspace -d {} -w {} -o {} -f {}:fit_s --postfit --sampling &> {}".format(
+      current_card, current_workspace, postfit_file, fit_file, fit_out
+    )
+    print("Running: {}".format(command_postFit))
+    subprocess.call(command_postFit, shell = True)
+
+    # 5. Add to list of fit results
+    if os.path.exists(fit_file) and os.path.exists(postfit_file):
+      fit_status = read_fit_result(fit_file, postfit_file, bin = bin)
+
+    print("fit_status: {}".format(fit_status))
+    if fit_status:
+      break
+
   if fit_status:
     return fit_status
   else:
     print("{} bin {} fit did not converge: {}".format(input_dir, bin, fit_status))
     return failed_result(bin, 2)
 
-def make_fits(input_dir, output_file, data_type, lepton_type, era, whitelist = None, skip_bins = None, jobs = -1, force = False):
+def make_fits(input_dir, output_file, whitelist = None, skip_bins = None, jobs = -1, force = False):
   assert(os.path.isdir(input_dir))
   output_dir = os.path.dirname(output_file)
   if not os.path.isdir(output_dir):
@@ -252,16 +223,10 @@ def make_fits(input_dir, output_file, data_type, lepton_type, era, whitelist = N
   fit_pool = multiprocessing.Pool(jobs if jobs > 0 else (multiprocessing.cpu_count() - 1))
   signal.signal(signal.SIGINT, original_sigint_handler)
   for bin in bins:
-    settings = ''
-    if data_type    in COMBINE_SETTINGS and \
-        lepton_type in COMBINE_SETTINGS[data_type] and \
-        era         in COMBINE_SETTINGS[data_type][lepton_type] and \
-        bin         in COMBINE_SETTINGS[data_type][lepton_type][era]:
-      settings = COMBINE_SETTINGS[data_type][lepton_type][era][bin]
     try:
       fit_pool.apply_async(
         fit_bin,
-        args = (input_dir, bin, settings, skip_bins and bin in skip_bins),
+        args = (input_dir, bin, skip_bins and bin in skip_bins),
         callback = update_fit_results,
       )
     except KeyboardInterrupt:
@@ -296,18 +261,6 @@ if __name__ == "__main__":
     type = str, dest = 'output', metavar = 'file', required = True,
     help = 'R|Output file',
   )
-  parser.add_argument('-l', '--lepton-type',
-    type = str, dest = 'lepton_type', metavar = 'type', required = True, choices = [ 'electron', 'muon' ],
-    help = 'R|Lepton type',
-  )
-  parser.add_argument('-t', '--data-type',
-    type = str, dest = 'data_type', metavar = 'type', required = True, choices = [ 'data', 'pseudodata' ],
-    help = 'R|Datacard type',
-  )
-  parser.add_argument('-e', '--era',
-    type = int, dest = 'era', metavar = 'year', required = True, choices = [ 2016, 2017, 2018 ],
-    help = 'R|Era',
-  )
   parser.add_argument('-s', '--skip',
     type = int, dest = 'skip', metavar = 'bin', required = False, nargs = '+', default = [],
     help = 'R|Skip bins',
@@ -336,9 +289,6 @@ if __name__ == "__main__":
 
   print("Input:              {}".format(args.input_data))
   print("Output:             {}".format(args.output))
-  print("Data type:          {}".format(args.data_type))
-  print("Lepton type:        {}".format(args.lepton_type))
-  print("Era:                {}".format(args.era))
   print("Skipping bins:      {}".format(', '.join(map(str, skip_bins))))
   print("Whitelisting bins:  {}".format(', '.join(map(str, args.whitelist))))
   print("Skipping zero bins: {}".format(args.skip_automatically))
@@ -347,9 +297,6 @@ if __name__ == "__main__":
   make_fits(
     input_dir   = os.path.abspath(args.input_data),
     output_file = os.path.abspath(args.output),
-    data_type   = args.data_type,
-    lepton_type = args.lepton_type,
-    era         = args.era,
     whitelist   = args.whitelist,
     skip_bins   = skip_bins,
     jobs        = args.jobs,
