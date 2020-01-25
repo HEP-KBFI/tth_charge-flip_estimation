@@ -131,8 +131,7 @@ def update_fit_results(results):
   bin, bestFit, fitHiErr, fitLoErr, status = results
   if status > 0:
     fit_results_failed.append(bin)
-  else:
-    fit_results[bin] = (bestFit, fitHiErr, fitLoErr)
+  fit_results[bin] = (bestFit, fitHiErr, fitLoErr)
 
 def fit_bin(input_dir, bin, skip_bins):
   print("{} bin {}: ------------------------- ".format(input_dir, bin))
