@@ -106,7 +106,7 @@ def create_pseudodata(
       output_pseudo_file_name,
       channel,
       rebin      = 1,
-      manipulate = False,
+      manipulate = None,
       samples    = SAMPLES,
       prefix     = PREFIX
     ):
@@ -131,7 +131,7 @@ def create_pseudodata(
       dir_pseudo_rebinned = dir_pseudo_top.mkdir(dirname_rebinned)
 
       for sample in samples:
-        manipulation_enabled = manipulate and charge == "SS" and category == "BB_LL" and sample == "DY"
+        manipulation_enabled = ':'.join([ charge, category, sample ]) in manipulate
 
         # Read nominal histograms
         histo_name_nominal = "{}/{}_rebinned".format(dirname_rebinned_full, sample)
@@ -237,8 +237,8 @@ if __name__ == "__main__":
     help = 'R|Seed for PRNG',
   )
   parser.add_argument('-m', '--manipulate',
-    dest = 'manipulate', action = 'store_true', default = False,
-    help = 'R|Manipulate',
+    type = str, dest = 'manipulate', metavar = 'string', required = False, nargs = '+', default = [],
+    help = 'R|Set bin content to 0.5 (format: charge:category:sample, eg SS:BB_LL:DY)',
   )
   args = parser.parse_args()
   np.random.seed(args.seed)
