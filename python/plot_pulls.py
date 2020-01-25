@@ -23,12 +23,16 @@ def get_all_containers(component):
     if c1 == component or c2 == component: containers.append(c)
   return containers
 
-def readMisIDRatiosGen(infile_name, processes = [ "DY" ], rec = ""):
+def readMisIDRatiosGen(infile_name, processes = [ "DY" ], rec = False):
   ratios = {}
   ratios_num = []
   infile = ROOT.TFile.Open(infile_name, 'read')
   for process in processes:
-    effs = infile.Get("gen_ratio/{process}/pt_eta_{process}{suffix}".format(process = process, suffix = rec))
+    histogram_name = "gen_ratio/{process}/pt_eta_{process}{suffix}".format(
+      process = process,
+      suffix  = "_rec" if rec else "",
+    )
+    effs = infile.Get(histogram_name)
     totalHisto = effs.GetTotalHistogram()
     for bin_eta in range(1, totalHisto.GetNbinsY() + 1):
       for bin_pt in range(1, totalHisto.GetNbinsX() + 1):
