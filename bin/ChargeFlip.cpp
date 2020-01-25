@@ -93,24 +93,24 @@ struct DatacardParams
   {
     skip_split_signal.clear();
     skip_split_background.clear();
+    if(skip.size() == 1 && skip.at(0).empty())
+    {
+      return;
+    }
     for(const std::string & skip_entry: skip)
     {
       std::vector<std::string> tokens;
       boost::split(tokens, skip_entry, boost::is_any_of("+"));
-      if(tokens.empty())
-      {
-        return;
-      }
       if(tokens.size() != 3)
       {
-        throw cms::Exception(Form("%s:%d", __func__, __LINE__)) << "Invalid argument: " << skip_entry;
+        throw cms::Exception(Form("%s:%d", __func__, __LINE__)) << "Invalid argument: '" << skip_entry << '\'';
       }
       const std::string charge_choice = tokens.at(0);
       const std::string bin_choice = tokens.at(1);
       const std::string source_choice = tokens.at(2);
       if(std::find(CHARGES.cbegin(), CHARGES.cend(), charge_choice) == CHARGES.cend())
       {
-        throw cms::Exception(Form("%s:%d", __func__, __LINE__)) << "Invalid argument: " << charge_choice;
+        throw cms::Exception(Form("%s:%d", __func__, __LINE__)) << "Invalid argument: '" << charge_choice << '\'';
       }
       bool found_bin = false;
       for(const auto & kv: BINNING)
@@ -123,7 +123,7 @@ struct DatacardParams
       }
       if(! found_bin)
       {
-        throw cms::Exception(Form("%s:%d", __func__, __LINE__)) << "Invalid argument: " << bin_choice;
+        throw cms::Exception(Form("%s:%d", __func__, __LINE__)) << "Invalid argument: '" << bin_choice << '\'';
       }
       if(source_choice == "signal")
       {
@@ -135,7 +135,7 @@ struct DatacardParams
       }
       else
       {
-        throw cms::Exception(Form("%s:%d", __func__, __LINE__)) << "Invalid argument: " << source_choice;
+        throw cms::Exception(Form("%s:%d", __func__, __LINE__)) << "Invalid argument: '" << source_choice << '\'';
       }
     }
   }
@@ -472,11 +472,6 @@ main(int argc,
   const std::string shape_syst_signal_default_joined = boost::algorithm::join(shape_syst_signal_default, ", ");
   const std::string shape_syst_background_default_joined = boost::algorithm::join(shape_syst_background_default, ", ");
 
-  const std::vector<std::string> skip_default = {
-    "SS+EE_LL+signal",
-  };
-  const std::string skip_default_joined = boost::algorithm::join(skip_default, " ");
-
   DatacardParams params;
   bool force = false;
   boost::program_options::options_description desc("Options");
@@ -575,9 +570,9 @@ main(int argc,
       "skip,x",
       boost::program_options::value<std::vector<std::string>>(&params.skip)
         ->multitoken()
-        ->default_value(skip_default, skip_default_joined)
+        ->default_value({}, "")
       ,
-      "Skip certain bins (format: list of <charge sum>+<bin>+<signal/background>, separated by whitespace)"
+      "Skip certain bins (format: list of <charge sum>+<bin>+<signal/background> eg SS+EE_LL+signal, separated by whitespace)"
     )
     (
       "prefix,p",
