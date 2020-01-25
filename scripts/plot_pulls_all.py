@@ -72,15 +72,10 @@ if __name__ == "__main__":
     type = str, dest = 'output', metavar = 'directory', required = True,
     help = 'R|Output directory',
   )
-  parser.add_argument('-e', '--exclude',
-    type = int, dest = 'exclude', metavar = 'bin', required = False, nargs = '+', default = [],
-    help = 'R|Exclude bins',
-  )
   args = parser.parse_args()
 
   input_hadd_stage2 = args.input_hadd
   output_dir = os.path.abspath(args.output)
-  exclude_bins = args.exclude
 
   # Check 1: MC closure to solve 21 linear equations using dummy 6 rates:
   #   6 dummy rates ->
@@ -89,6 +84,7 @@ if __name__ == "__main__":
   #   6 rates (caculated)
   print('=' * 120)
   print("Checking MC closure to solve 21 linear equations using dummy 6 rates")
+  exclude_bins_dummy = []
   rate_dummy = 2.e-5
   eRate_dummy = 1.e-6
   misIDRatiosNum_dummy = [ (rate_dummy, eRate_dummy) for _ in RATE_BINS  ]
@@ -97,13 +93,12 @@ if __name__ == "__main__":
   for bin_idx, bin in RATE_BINS.items():
     print("  {} {}:  {} +/- {}".format(bin_idx, bin, misIDRatios_dummy[bin][0], misIDRatios_dummy[bin][1]))
 
-  # Calculate 21 rates from misIDRatios_dummy by adding the corresponding of the 6 rates
-  catRatiosNum_dummySum, catRatios_dummySum = makeCatRatiosFrom6(misIDRatios_dummy, exclude_bins)
+  catRatiosNum_dummySum, catRatios_dummySum = makeCatRatiosFrom6(misIDRatios_dummy, exclude_bins_dummy)
   print("Ratios by category for 6 dummy rates:")
   for bin_idx, value in catRatios_dummySum.items():
     print("  {}: {} +/- {}".format(bin_idx, value[0], value[1]))
 
-  rates_dummy, uncs_dummy = calculate(catRatiosNum_dummySum, exclude_bins)
+  rates_dummy, uncs_dummy = calculate(catRatiosNum_dummySum, exclude_bins_dummy)
   print("Calculated dummy rates:")
   for bin_idx, rate in enumerate(rates_dummy):
     print("  {}: {} +- {}".format(bin_idx, rate, uncs_dummy[bin_idx]))
@@ -117,22 +112,29 @@ if __name__ == "__main__":
   #   6 gen rates (caculated)
   print('=' * 120)
   print("Checking MC closure to solve 21 linear equations using generator-level rates")
+  exclude_bins_gen = []
   misIDRatiosNum_gen, misIDRatios_gen = readMisIDRatiosGen(input_hadd_stage2, rec = False)
   print("Generator-level mis-identification ratios:")
   for bin_idx, bin in RATE_BINS.items():
     print("  {} {}:  {} +/- {}".format(bin_idx, bin, misIDRatios_gen[bin][0], misIDRatios_gen[bin][1]))
 
-  # Calculate 21 rates from misIDRatios_gen by adding the corresponding of the 6 rates
-  catRatiosNum_genSum, catRatios_genSum = makeCatRatiosFrom6(misIDRatios_gen, exclude_bins)
+  catRatiosNum_genSum, catRatios_genSum = makeCatRatiosFrom6(misIDRatios_gen, exclude_bins_gen)
   print("Ratios by category for 6 generator-level rates:")
   for bin_idx, value in catRatios_genSum.items():
     print("  {}: {} +/- {}".format(bin_idx, value[0], value[1]))
 
-  rates_gen, uncs_gen = calculate(catRatiosNum_genSum, exclude_bins)
+  rates_gen, uncs_gen = calculate(catRatiosNum_genSum, exclude_bins_gen)
   print("Calculated generator-level rates:")
   for bin_idx, rate in enumerate(rates_gen):
     print("  {}: {} +- {}".format(bin_idx, rate, uncs_gen[bin_idx]))
   compare_misIdRatios(misIDRatiosNum_gen, rates_gen, uncs_gen, name = "gen_closure", output_dir = output_dir)
+
+  print("Comparing 21 ratios from di-lepton mass histograms to the calculated gen rates")
+  catRatiosNum_gen, catRatios_gen = readCategoryRatiosGen(input_hadd_stage2, is_gen = True)
+  chi2s = make_pull_plot_21(
+    misIDRatios_gen, catRatios_gen, name = "gen", output_dir = output_dir,
+    y_range = (-0.001, 0.011), excluded = exclude_bins_gen,
+  )
   print('=' * 120 + '\n')
 
   # Check 3: MC clousre using gen vs rec rates:
@@ -142,39 +144,32 @@ if __name__ == "__main__":
   #   6 gen vs rec rates (caculated)
   print('=' * 120)
   print("Checking MC closure to solve 21 linear equations using generator vs reconstruction level rates")
+  exclude_bins_genRec = []
   misIDRatiosNum_genRec, misIDRatios_genRec = readMisIDRatiosGen(input_hadd_stage2, rec = True)
   print("Mis-identification ratios for generator vs reconstruction level:")
   for bin_idx, bin in RATE_BINS.items():
     print("  {} {}:  {} +/- {}".format(bin_idx, bin, misIDRatios_genRec[bin][0], misIDRatios_genRec[bin][1]))
 
-  # Calculate 21 rates from misIDRatios_genRec by adding the corresponding of the 6 rates
   catRatiosNum_genRecSum, catRatios_genRecSum = makeCatRatiosFrom6(misIDRatios_genRec)
   print("Ratios by category for 6 generator vs reconstruction level rates:")
   for bin_idx, value in catRatios_genRecSum.items():
     print("  {}: {} +/- {}".format(bin_idx, value[0], value[1]))
 
-  rates_genRec, uncs_genRec = calculate(catRatiosNum_genRecSum, exclude_bins)
+  rates_genRec, uncs_genRec = calculate(catRatiosNum_genRecSum, exclude_bins_genRec)
   print("Calculated generator vs reconstruction level rates:")
   for bin_idx, rate in enumerate(rates_genRec):
     print("  {}: {} +- {}".format(bin_idx, rate, uncs_gen[bin_idx]))
   compare_misIdRatios(misIDRatiosNum_genRec, rates_genRec, uncs_genRec, name = "genRec_closure", output_dir = output_dir)
+
+  print("Comparing 21 ratios from di-lepton mass histograms to the calculated generator vs reconstruction level rates")
+  catRatiosNum_genRec, catRatios_genRec = readCategoryRatiosGen(input_hadd_stage2, is_gen = False)
+  chi2s = make_pull_plot_21(
+    misIDRatios_genRec, catRatios_genRec, name = "genRec", output_dir = output_dir,
+    y_range = (-0.001, 0.011), excluded = exclude_bins_genRec,
+  )
   print('=' * 120 + '\n')
 
   sys.exit(0)
-
-  print("Check 3] Compare 21 ratios (gen) read from stage2_mass_ll OS/SS histograms and 21 ratios calculated from 6 (gen) rates :: ")
-  (misIDRatiosNum, misIDRatios) = readMisIDRatiosGen(input_hadd_stage2)  # read 6 eMisId w.r.t. gen-pT-eta from stage2.root
-  print_ratios_latex(misIDRatiosNum, "gen");
-  catRatiosNum, catRatios = readCategoryRatiosGen(input_hadd_stage2)  # calculate 21 r=SS/(OS+SS) from gen_massll from stage2.root
-  chi2s = make_pull_plot_21(misIDRatios, catRatios, mydir = output_dir, y_range = (-0.001, 0.011),
-                            outFileName = "fit_output_pseudodata_%s/fit_res.root" % FITNAME)
-
-  print("Check 4] Compare 21 ratios (gen_rec w.r.t reconstructed pT, eta) read from stage2_mass_ll OS/SS histograms and 21 ratios calculated from 6 (gen) rates :: ")
-  (misIDRatiosNum, misIDRatios) = readMisIDRatiosGen(input_hadd_stage2, rec = "_rec")
-  print_ratios_latex(misIDRatiosNum, "gen_rec");
-  catRatiosNum, catRatios = readCategoryRatiosGen(input_hadd_stage2, gen = "gen_rec")
-  chi2s = make_pull_plot_21(misIDRatios, catRatios, mydir = output_dir, y_range = (-0.001, 0.011), name = "gen_rec",
-                            outFileName = "fit_output_pseudodata_%s/fit_res.root" % FITNAME)
 
   print("Check 5] Closure test to see if we get 6 number back if we construct the 21 from the 6 (gen_rec) rates and then fit :: ")
   print "Turns out this underestimates uncertainty (due to correlations)"

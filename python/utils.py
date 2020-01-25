@@ -92,10 +92,12 @@ def get_bin_nr(bin_name_nice):
   return BIN_NAMES_COMPOSITE_NICE.index(bin_name_nice)
 
 
-def make_title(name, excluded):
+def make_title(name):
   title = ""  
   if name == "gen":
     title = "Generator-level"
+  elif name == "genRec":
+    title = "Generator-level wrt reconstructed p_{T} and #eta"
   elif name == "gen_fit":
     title = "Generator-level, misID rates from solving equations"
   elif name == "gen_fit_exclusions":

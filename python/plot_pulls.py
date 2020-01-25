@@ -45,47 +45,38 @@ def readMisIDRatiosGen(infile_name, processes = [ "DY" ], rec = False):
   infile.Close()
   return (ratios_num, ratios)
 
-def readCategoryRatiosGen(infile, exclude_bins = [], gen = "gen"):
-  f = ROOT.TFile(infile)
-  i = 0
+def readCategoryRatiosGen(infile_name, is_gen, exclude_bins = None):
+  infile = ROOT.TFile(infile_name)
   os_err = ROOT.Double()
   ss_err = ROOT.Double()
   ratios = {}
   ratios_num = []
-  for cat in BIN_NAMES_COMPOSITE:
-    #histo_OS = f.Get("%s/OS/%s/mass_ll" % (gen, cat))
-    #histo_SS = f.Get("%s/SS/%s/mass_ll" % (gen, cat))
-    sHisto_OS0 = "%s/OS/%s/mass_ll" % (gen, cat);
-    sHisto_OS = "OS/%s/DY/%s/mass_ll" % (cat,gen);
-    histo_OS = f.Get(sHisto_OS)
-    #print "Histo: %s, \t Histo0: %s " % (sHisto_OS,sHisto_OS0)
-    sHisto_SS0 = "%s/SS/%s/mass_ll" % (gen, cat);
-    sHisto_SS  = "SS/%s/DY/%s/mass_ll" % (cat, gen);
-    histo_SS = f.Get(sHisto_SS)
-    #print "Histo: %s, \t Histo0: %s " % (sHisto_SS,sHisto_SS0)
-    os_count = histo_OS.IntegralAndError(0, histo_OS.GetNbinsX()+2, os_err)
-    ss_count = histo_SS.IntegralAndError(0, histo_SS.GetNbinsX()+2, ss_err)
+  gen = "gen" if is_gen else "gen_rec"
+  for cat_idx, cat in enumerate(BIN_NAMES_COMPOSITE):
+    histo_OS = infile.Get(os.path.join("OS", cat, "DY", gen, "mass_ll"))
+    histo_SS = infile.Get(os.path.join("SS", cat, "DY", gen, "mass_ll"))
+    os_count = histo_OS.IntegralAndError(0, histo_OS.GetNbinsX() + 2, os_err)
+    ss_count = histo_SS.IntegralAndError(0, histo_SS.GetNbinsX() + 2, ss_err)
+
     if os_count > 0:
       ratio = ss_count / (ss_count + os_count)
-      err  = (ss_count + ss_err) / (ss_count + ss_err + os_count - os_err) - ratio
-      err1 = calUncertaintyR(os_count,os_err, ss_count,ss_err) # Siddhesh
-      err = err1
+      err = calUncertaintyR(os_count,os_err, ss_count,ss_err)
     else:
       ratio = 1.
       err = 1.
-    if err == 0. : err = -math.log(0.32) / os_count
-    if get_bin_name_nice(i) in exclude_bins:
-      i += 1
-      continue
-    else:
-      ratios[get_bin_name_nice(i)] = (ratio, err, err)
+    if err == 0.:
+      err = -math.log(0.32) / os_count
+
+    bin_name_nice = get_bin_name_nice(cat_idx)
+    if not (exclude_bins and bin_name_nice in exclude_bins):
+      ratios[bin_name_nice] = (ratio, err, err)
       ratios_num.append((ratio, err, err))
-      i+=1
+  infile.Close()
   return (ratios_num, ratios)
 
 def calUncertaintyR(Nos, eNos, Nss, eNss):
-  term1 = (Nos**2)/((Nss+Nos)**4) * (eNss**2)
-  term2 = (Nss**2)/((Nss+Nos)**4) * (eNos**2)
+  term1 = Nos**2 / (Nss + Nos)**4 * eNss**2
+  term2 = Nss**2 / (Nss + Nos)**4 * eNos**2
   return math.sqrt(term1 + term2)
 
 #Creates 21 category ratios by summing the 6 and their uncertainties
@@ -103,60 +94,69 @@ def makeCatRatiosFrom6(misIDRatios, excluded = None):
   return (ratios_num, ratios)
 
 # Makes pull plots for comparing 21 category ratios to sums obtained from 6
-def make_pull_plot_21(misIDRatios, catRatios, name = "gen", mydir = "pull_plots_21", y_range = None, excluded = []):
+def make_pull_plot_21(misIDRatios, catRatios, name, output_dir, y_range = None, excluded = None):
   pull_plots = []
   sum_plots = []
   sum_plots_2 = []
   chi2s = {}
+
   sum_plot = ROOT.TH1D("sum_plot", "", 21, 0, 21)
   gen_plot = ROOT.TH1D("gen_plot", "", 21, 0, 21)
+  sum_plot.SetStats(0)
+  gen_plot.SetStats(0)
   c = ROOT.TCanvas("Plot", "Plot", 1920, 1080)
-  ROOT.gStyle.SetOptStat(0)
+
   test1 = ROOT.TH1D("test1", "test1", 1, 0, 1)
   test2 = ROOT.TH1D("test2", "test2", 1, 0, 1)
+  test1.SetStats(0)
+  test2.SetStats(0)
 
-  for b in range(1, len(BIN_NAMES_COMPOSITE_NICE) + 1):
-    pull_plots.append(ROOT.TH1D("cats%d" % b, "", 21, 0, 21))
-    sum_plots.append(ROOT.TH1D("sums%d" % b, "sums%d" % b, 21, 0, 21))
-    sum_plots_2.append(ROOT.TH1D("sums2_%d" % b, "sums2_%d" % b, 21, 0, 21))
-    gen_plot.GetXaxis().SetBinLabel(b, BIN_NAMES_COMPOSITE_NICE[b - 1])
-    sum_plot.GetXaxis().SetBinLabel(b, BIN_NAMES_COMPOSITE_NICE[b - 1])
+  nbins = len(BIN_NAMES_COMPOSITE_NICE)
+  for bin_idx in range(1, nbins + 1):
+    pull_plots.append(ROOT.TH1D("cats%d" % bin_idx, "", nbins, 0, nbins))
+    sum_plots.append(ROOT.TH1D("sums%d" % bin_idx, "sums%d" % bin_idx, nbins, 0, nbins))
+    sum_plots_2.append(ROOT.TH1D("sums2_%d" % bin_idx, "sums2_%d" % bin_idx, nbins, 0, nbins))
+    sum_plots[-1].SetStats(0)
+    sum_plots_2[-1].SetStats(0)
 
-  for b in range(1, len(BIN_NAMES_COMPOSITE_NICE) + 1):
-    for i in range(1, len(BIN_NAMES_COMPOSITE_NICE) + 1):
-      pull_plots[b - 1].GetXaxis().SetBinLabel(i, BIN_NAMES_COMPOSITE_NICE[i - 1])
-      sum_plots[b - 1].GetXaxis().SetBinLabel(i, BIN_NAMES_COMPOSITE_NICE[i - 1])
-      sum_plots_2[b - 1].GetXaxis().SetBinLabel(i, BIN_NAMES_COMPOSITE_NICE[i - 1])
+    gen_plot.GetXaxis().SetBinLabel(bin_idx, BIN_NAMES_COMPOSITE_NICE[bin_idx - 1])
+    sum_plot.GetXaxis().SetBinLabel(bin_idx, BIN_NAMES_COMPOSITE_NICE[bin_idx - 1])
 
-    if BIN_NAMES_COMPOSITE_NICE[b - 1] in excluded: continue
+  for bin_idx in range(1, nbins + 1):
+    for bin_jdx in range(1, nbins + 1):
+      pull_plots [bin_idx - 1].GetXaxis().SetBinLabel(bin_jdx, BIN_NAMES_COMPOSITE_NICE[bin_jdx - 1])
+      sum_plots  [bin_idx - 1].GetXaxis().SetBinLabel(bin_jdx, BIN_NAMES_COMPOSITE_NICE[bin_jdx - 1])
+      sum_plots_2[bin_idx - 1].GetXaxis().SetBinLabel(bin_jdx, BIN_NAMES_COMPOSITE_NICE[bin_jdx - 1])
 
-    (cat1, cat2) = get_component_cats(BIN_NAMES_COMPOSITE_NICE[b - 1])
-    (value_gen, err, err_plus) = catRatios[BIN_NAMES_COMPOSITE_NICE[b - 1]]
-    pull_plots[b - 1].SetBinContent(b, value_gen)
-    pull_plots[b - 1].SetBinError(b, err)
+    if excluded and BIN_NAMES_COMPOSITE_NICE[bin_idx - 1] in excluded:
+      continue
 
-    (value, err, err_plus) = misIDRatios[cat1]
-    sum_plots[b - 1].SetBinContent(b, value)
-    sum_plots[b - 1].SetBinError(b, err)
+    cat1, cat2 = get_component_cats(BIN_NAMES_COMPOSITE_NICE[bin_idx - 1])
+    value_gen, err, err_plus = catRatios[BIN_NAMES_COMPOSITE_NICE[bin_idx - 1]]
+    pull_plots[bin_idx - 1].SetBinContent(bin_idx, value_gen)
+    pull_plots[bin_idx - 1].SetBinError(bin_idx, err)
 
-    (value, err, err_plus) = misIDRatios[cat2]
-    sum_plots_2[b - 1].SetBinContent(b, value)
-    sum_plots_2[b - 1].SetBinError(b, err)
+    value, err, err_plus = misIDRatios[cat1]
+    sum_plots[bin_idx - 1].SetBinContent(bin_idx, value)
+    sum_plots[bin_idx - 1].SetBinError(bin_idx, err)
 
-    sum_plots[b - 1].Add(sum_plots_2[b - 1])
+    value, err, err_plus = misIDRatios[cat2]
+    sum_plots_2[bin_idx - 1].SetBinContent(bin_idx, value)
+    sum_plots_2[bin_idx - 1].SetBinError(bin_idx, err)
 
-    test1.SetBinContent(1, pull_plots[b - 1].GetBinContent(b))
-    test1.SetBinError(1, pull_plots[b - 1].GetBinError(b))
-    test2.SetBinContent(1, sum_plots[b - 1].GetBinContent(b))
-    test2.SetBinError(1, sum_plots[b - 1].GetBinError(b))
-    # chi2s.append(test1.Chi2Test(test2, "WW"))
+    sum_plots[bin_idx - 1].Add(sum_plots_2[bin_idx - 1])
+
+    test1.SetBinContent(1, pull_plots[bin_idx - 1].GetBinContent(bin_idx))
+    test1.SetBinError  (1, pull_plots[bin_idx - 1].GetBinError(bin_idx))
+    test2.SetBinContent(1, sum_plots [bin_idx - 1].GetBinContent(bin_idx))
+    test2.SetBinError  (1, sum_plots [bin_idx - 1].GetBinError(bin_idx))
+
     # Chi2 method from histogram doesn't give expected results, will calculate manually
-    chi2s[BIN_NAMES_COMPOSITE_NICE[b - 1]] = abs(test1.GetBinContent(1) - test2.GetBinContent(1)) / (
-          test1.GetBinError(1) + test2.GetBinError(1))
-    # print b, test1.GetBinContent(1), test2.GetBinContent(1)
+    chi2s[BIN_NAMES_COMPOSITE_NICE[bin_idx - 1]] = abs(test1.GetBinContent(1) - test2.GetBinContent(1)) / \
+                                                   (test1.GetBinError(1) + test2.GetBinError(1))
 
-    gen_plot.Add(pull_plots[b - 1])
-    sum_plot.Add(sum_plots[b - 1])
+    gen_plot.Add(pull_plots[bin_idx - 1])
+    sum_plot.Add(sum_plots[bin_idx - 1])
 
   if y_range:
     gen_plot.SetAxisRange(y_range[0], y_range[1], "Y")
@@ -164,7 +164,7 @@ def make_pull_plot_21(misIDRatios, catRatios, name = "gen", mydir = "pull_plots_
   gen_plot.SetLineColor(ROOT.kRed)
   gen_plot.SetLineWidth(3)
   sum_plot.SetLineWidth(2)
-  title = make_title(name, excluded)
+  title = make_title(name)
   gen_plot.SetNameTitle(title, title)
   gen_plot.Draw("e1")
   sum_plot.Draw("e1 same")
@@ -178,9 +178,9 @@ def make_pull_plot_21(misIDRatios, catRatios, name = "gen", mydir = "pull_plots_
   leg.AddEntry(gen_plot, "Category for 2 electrons", "l")
   leg.Draw()
 
-  mkdir_p(mydir)
-  c.SaveAs("%s/pulls_%s.pdf" % (mydir, name))
-  c.SaveAs("%s/pulls_%s.png" % (mydir, name))
+  mkdir_p(output_dir)
+  c.SaveAs(os.path.join(output_dir, "pulls_{}.pdf".format(name)))
+  c.SaveAs(os.path.join(output_dir, "pulls_{}.png".format(name)))
   return chi2s
 
 def calculateError_N1byN2(N1,eN1, N2,eN2): # formala r = N1/N2
