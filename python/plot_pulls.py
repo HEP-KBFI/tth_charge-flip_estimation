@@ -27,7 +27,7 @@ def readMisIDRatiosGen(infile, processes = ["DY"], rec = ""):
   ratios_num = []
   f = ROOT.TFile(infile)
   for p in processes:
-    effs = f.Get("gen_ratio/pt_eta_%s%s" % (p, rec))
+    effs = f.Get("gen_ratio/%s/pt_eta_%s%s" % (p, p, rec))
     #print "gen_ratio/pt_eta_%s" % p
     totalHisto = effs.GetTotalHistogram()
     for bin_eta in range(1, totalHisto.GetNbinsY()+1):
@@ -38,7 +38,7 @@ def readMisIDRatiosGen(infile, processes = ["DY"], rec = ""):
         effErrHi = effs.GetEfficiencyErrorUp(bin)
         ratios[get_bin_name_single(bin_eta, bin_pt)] = (eff, effErrLo, effErrHi)
         ratios_num.append((eff, max(effErrLo, effErrHi)))
-        #print "Bin (%d, %d): Eff = %f + %f - %f" % (bin_eta, bin_pt, eff * 100, effErrHi * 100, effErrLo*100)
+        #print("Bin (%d, %d): Eff = %f + %f - %f" % (bin_eta, bin_pt, eff * 100, effErrHi * 100, effErrLo*100))
   return (ratios_num,ratios)
 
 def readCategoryRatiosGen(infile, exclude_bins = [], gen = "gen"):

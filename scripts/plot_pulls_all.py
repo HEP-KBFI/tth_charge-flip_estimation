@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
-from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, readMisIDRatios, BIN_NAMES_COMPOSITE, \
-                                                   BIN_NAMES_COMPOSITE_NICE, read_exclude_bins, bin_names_single, \
-                                                   get_bin_nr, SmartFormatter
+from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, readMisIDRatios, read_exclude_bins, \
+                                                   bin_names_single, get_bin_nr, SmartFormatter
 from tthAnalysis.ChargeFlipEstimation.matrix_solver import calculate_solution, print_ratios_latex, calculate
 from tthAnalysis.ChargeFlipEstimation.plot_pulls import readMisIDRatiosGen, readCategoryRatiosGen, make_pull_plot_21, \
                                                         makeCatRatiosFrom6, compare_misIdRatios
-
+import scipy.stats
 import ROOT
 import math
 import argparse
@@ -23,10 +22,15 @@ Selects which categories of 21 to drop because of correlations and solves the eq
 """
 
 # Number of sigmas difference to consider fit results not compatible
-NSIGMAS = 1.2815515  # Corresponds to p-value of 0.1
+PVALUE = 0.1
+NSIGMAS = scipy.stats.norm.ppf(1. - PVALUE)
+
 # File to store list of excluded categories
 EXCLUDED_FILE = "/home/ssawant/VHbbNtuples_10_x/CMSSW_10_2_13/src/tthAnalysis/ChargeFlipEstimation/bin/../data/excluded_categories.txt"
 
+EXCLUDED_CATEGORIES_2016 = [ "BM_BL", "EM_EM", "EH_EH", "EM_BL", "BH_EH", "EH_EL", "BL_EL", "EL_EL", "BH_BL", "BH_BM" ]
+EXCLUDED_CATEGORIES_2017 = [ "EM_EM", "EM_EL", "EH_EH", "BL_BL", "EH_BM", "EH_EL", "EL_EL", "EH_BL", "BH_BM" ]
+EXCLUDED_CATEGORIES_2018 = [ "BM_BL", "EM_EM", "EM_EL", "BH_EM", "BL_BL", "EH_BM", "EH_EL", "BH_BH", "BL_EL", "EL_EL", "BH_BL", "BH_BM" ]
 
 # Writes to the specified file list of categories to exclude
 def select_categories(chi2s, catRatios):
@@ -79,13 +83,12 @@ if __name__ == "__main__":
     help = 'R|Exclude bins',
   )
   args = parser.parse_args()
-  #TODO remove SS BB_LL
 
   input_hadd_stage2 = args.input_hadd
   output_dir = os.path.abspath(args.output)
   exclude_bins = args.exclude
 
-  # Check 1] Check MC closure to solve 21 linear equations using dummy 6 rates::
+  # Check 1] Check MC closure to solve 21 linear equations using dummy 6 rates:
   #   6 dummy rates ..>
   #   Add them to get 21 rations -->
   #   Solve 21 equation for 6 rates ->
@@ -95,22 +98,22 @@ if __name__ == "__main__":
   eRate_dummy = 1.e-6
   misIDRatiosNum = [ (rate_dummy, eRate_dummy) for _ in RATE_BINS  ]
   misIDRatios = { bin_names_single[i] : (rate_dummy, eRate_dummy, eRate_dummy) for i in RATE_BINS }
-  print("misIDRatios: (6 dummy rates)")
+  print("Mis-identification ratios: (6 dummy rates)")
   for bin_idx, bin in RATE_BINS.items():
     print("  {} {}:  {}".format(bin_idx, bin, misIDRatios[bin]))
 
   # Calculate 21 rates from misIdRatios by adding the corresponding of the 6 rates
   catRatiosNum_genSum, catRatios_genSum = makeCatRatiosFrom6(misIDRatios, exclude_bins)
-  print("catRatios_genSum: (6 dummy rates ..> Add them to get 21 rations) ")
+  print("catRatios_genSum: (6 dummy rates) ")
   for key, value in catRatios_genSum.items():
     print("  {}:  {}".format(key, value))
 
-  print("21Cat -> 6Rates:")
+  print("21 categories -> 6 rates:")
   (rates, uncs) = calculate(catRatiosNum_genSum, exclude_bins)
-  print("CalculatedRates:")
+  print("Calculated rates:")
   for i in range(0, len(rates)):
     print("\t {}:  {} +- {}".format(i, rates[i], uncs[i]))
-  compare_misIdRatios(misIDRatiosNum, rates, uncs, name = "gen_dummy_closure", mydir = output_dir, outFileName = "")
+  compare_misIdRatios(misIDRatiosNum, rates, uncs, name = "dummy_closure", mydir = output_dir, outFileName = "")
 
   sys.exit(0)
 
