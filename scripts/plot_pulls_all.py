@@ -10,6 +10,7 @@ import ROOT
 import math
 import argparse
 import os
+import sys
 
 ROOT.gROOT.SetBatch(True)
 ROOT.TH1.SetDefaultSumw2()
@@ -82,57 +83,55 @@ if __name__ == "__main__":
   exclude_bins = args.exclude
 
   # Check 1: MC closure to solve 21 linear equations using dummy 6 rates:
-  #   6 dummy rates ..>
-  #   Add them to get 21 rations -->
+  #   6 dummy rates ->
+  #   Add them to get 21 rations ->
   #   Solve 21 equation for 6 rates ->
   #   6 rates (caculated)
   print("Checking MC closure to solve 21 linear equations using dummy 6 rates")
   rate_dummy = 2.e-5
   eRate_dummy = 1.e-6
-  misIDRatiosNum = [ (rate_dummy, eRate_dummy) for _ in RATE_BINS  ]
-  misIDRatios = { BIN_NAMES_SINGLE[i] : (rate_dummy, eRate_dummy, eRate_dummy) for i in RATE_BINS }
-  print("Mis-identification ratios for 6 dummy rates:")
+  misIDRatiosNum_dummy = [ (rate_dummy, eRate_dummy) for _ in RATE_BINS  ]
+  misIDRatios_dummy = { BIN_NAMES_SINGLE[bin_idx] : (rate_dummy, eRate_dummy, eRate_dummy) for bin_idx in RATE_BINS }
+  print("Dummy mis-identification ratios:")
   for bin_idx, bin in RATE_BINS.items():
-    print("  {} {}:  {} +/- {}".format(bin_idx, bin, misIDRatios[bin][0], misIDRatios[bin][1]))
+    print("  {} {}:  {} +/- {}".format(bin_idx, bin, misIDRatios_dummy[bin][0], misIDRatios_dummy[bin][1]))
 
-  # Calculate 21 rates from misIdRatios by adding the corresponding of the 6 rates
-  catRatiosNum_genSum, catRatios_genSum = makeCatRatiosFrom6(misIDRatios, exclude_bins)
+  # Calculate 21 rates from misIDRatios_dummy by adding the corresponding of the 6 rates
+  catRatiosNum_dummySum, catRatios_dummySum = makeCatRatiosFrom6(misIDRatios_dummy, exclude_bins)
   print("Ratios by category for 6 dummy rates:")
-  for key, value in catRatios_genSum.items():
-    print("  {}: {} +/- {}".format(key, value[0], value[1]))
+  for bin_idx, value in catRatios_dummySum.items():
+    print("  {}: {} +/- {}".format(bin_idx, value[0], value[1]))
 
-  (rates, uncs) = calculate(catRatiosNum_genSum, exclude_bins)
+  rates_dummy, uncs_dummy = calculate(catRatiosNum_dummySum, exclude_bins)
   print("Calculated dummy rates:")
-  for i in range(0, len(rates)):
-    print("  {}: {} +- {}".format(i, rates[i], uncs[i]))
-  compare_misIdRatios(misIDRatiosNum, rates, uncs, name = "dummy_closure", output_dir = output_dir)
+  for bin_idx, rate in enumerate(rates_dummy):
+    print("  {}: {} +- {}".format(bin_idx, rate, uncs_dummy[bin_idx]))
+  compare_misIdRatios(misIDRatiosNum_dummy, rates_dummy, uncs_dummy, name = "dummy_closure", output_dir = output_dir)
+
+  # Check 2 MC clousre using the gen rates:
+  #   6 gen rates ->
+  #   Add them to get 21 rations ->
+  #   Solve 21 equation for 6 rates ->
+  #   6 gen rates (caculated)
+  print("Checking MC closure to solve 21 linear equations using generator-level rates")
+  misIDRatiosNum_gen, misIDRatios_gen = readMisIDRatiosGen(input_hadd_stage2)
+  print("Generator-level mis-identification ratios:")
+  for bin_idx, bin in RATE_BINS.items():
+    print("  {} {}:  {} +/- {}".format(bin_idx, bin, misIDRatios_gen[bin][0], misIDRatios_gen[bin][1]))
+
+  # Calculate 21 rates from misIDRatios_gen by adding the corresponding of the 6 rates
+  catRatiosNum_genSum, catRatios_genSum = makeCatRatiosFrom6(misIDRatios_gen, exclude_bins)
+  print("Ratios by category for 6 generator-level rates:")
+  for bin_idx, value in catRatios_genSum.items():
+    print("  {}: {} +/- {}".format(bin_idx, value[0], value[1]))
+
+  rates_gen, uncs_gen = calculate(catRatiosNum_genSum, exclude_bins)
+  print("Calculated generator-level rates:")
+  for bin_idx, rate in enumerate(rates_gen):
+    print("  {}: {} +- {}".format(bin_idx, rate, uncs_gen[bin_idx]))
+  compare_misIdRatios(misIDRatiosNum_gen, rates_gen, uncs_gen, name = "gen_closure", output_dir = output_dir)
 
   sys.exit(0)
-
-  # Check 2.1] Check MC clousre using the gen rates::
-  #   6 gen rates ..>
-  #   Add them to get 21 rations -->
-  #   Solve 21 equation for 6 rates -->
-  #   6 gen rates (caculated)
-  print("Checking MC clousre using the gen rates")
-  (misIDRatiosNum, misIDRatios) = readMisIDRatiosGen(input_hadd_stage2)  # read 6 eMisId w.r.t. gen-pT-eta from stage2.root
-  print("misIDRatios:: (6 gen rates) ")
-  for i in range(6):
-    print("\t {} {}:  {}".format(i, RATE_BINS[i], misIDRatios[RATE_BINS[i]]))
-
-  # Calculate 21 rates from misIdRatios by adding the corresponding of the 6 rates
-  catRatiosNum_genSum, catRatios_genSum = makeCatRatiosFrom6(misIDRatios)
-  print("catRatios_genSum:: (6 gen rates ..> Add them to get 21 rations) ")
-  for key, value in catRatios_genSum.items():
-    print("\t {}:  {}".format(key, value))
-
-  print("21Cat --> 6Rates:: ( gen rates ..> Add them to get 21 rations --> Solve 21 equation for 6 rates) ");
-  (rates, uncs) = calculate(catRatiosNum_genSum, exclude_bins)
-  print("CalculatedRates: misIDRatios(gen) --> catRatios_genSum  --> Rates::")
-  for i in range(0, len(rates)):
-    print("\t {}:  {} +- {}".format(i, rates[i], uncs[i]))
-
-  compare_misIdRatios(misIDRatiosNum, rates, uncs, name = "gen_closure", output_dir = output_dir)
 
   print("Check 2.2] Check MC clousre using the gen rates:: 6 gen_rec rates ..> Add them to get 21 rations --> Solve 21 equation for 6 rates --> 6 gen_rec rates (caculated) :: ")
   (misIDRatiosNum, misIDRatios) = readMisIDRatiosGen(input_hadd_stage2,

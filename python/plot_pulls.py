@@ -4,6 +4,7 @@ from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, BIN_NAM
 
 import ROOT
 import math
+import os.path
 
 def contained_in(composite_name):
   comp1 = composite_name[0]+composite_name[3]
@@ -22,24 +23,23 @@ def get_all_containers(component):
     if c1 == component or c2 == component: containers.append(c)
   return containers
 
-def readMisIDRatiosGen(infile, processes = ["DY"], rec = ""):
+def readMisIDRatiosGen(infile_name, processes = [ "DY" ], rec = ""):
   ratios = {}
   ratios_num = []
-  f = ROOT.TFile(infile)
-  for p in processes:
-    effs = f.Get("gen_ratio/%s/pt_eta_%s%s" % (p, p, rec))
-    #print "gen_ratio/pt_eta_%s" % p
+  infile = ROOT.TFile.Open(infile_name, 'read')
+  for process in processes:
+    effs = infile.Get("gen_ratio/{process}/pt_eta_{process}{suffix}".format(process = process, suffix = rec))
     totalHisto = effs.GetTotalHistogram()
-    for bin_eta in range(1, totalHisto.GetNbinsY()+1):
-      for bin_pt in range(1, totalHisto.GetNbinsX()+1):
+    for bin_eta in range(1, totalHisto.GetNbinsY() + 1):
+      for bin_pt in range(1, totalHisto.GetNbinsX() + 1):
         bin = effs.GetGlobalBin(bin_pt, bin_eta)
         eff = effs.GetEfficiency(bin)
         effErrLo = effs.GetEfficiencyErrorLow(bin)
         effErrHi = effs.GetEfficiencyErrorUp(bin)
         ratios[get_bin_name_single(bin_eta, bin_pt)] = (eff, effErrLo, effErrHi)
         ratios_num.append((eff, max(effErrLo, effErrHi)))
-        #print("Bin (%d, %d): Eff = %f + %f - %f" % (bin_eta, bin_pt, eff * 100, effErrHi * 100, effErrLo*100))
-  return (ratios_num,ratios)
+  infile.Close()
+  return (ratios_num, ratios)
 
 def readCategoryRatiosGen(infile, exclude_bins = [], gen = "gen"):
   f = ROOT.TFile(infile)
@@ -201,7 +201,8 @@ def compare_misIdRatios(misIDRatiosNum_original, misIDRatiosNum_closure, misIDRa
     hRates_closure.SetBinContent(i + 1, misIDRatiosNum_closure[i])
     hRates_closure.SetBinError(i + 1, misIDRatiosUncNum_closure[i])
 
-  ROOT.gStyle.SetOptStat(0)
+  hRates_original.SetStats(0)
+  hRates_closure.SetStats(0)
   canvas = ROOT.TCanvas("canvas", "canvas", 650, 700)
   canvas.SetFillColor(10)
   canvas.SetBorderSize(2)
@@ -321,8 +322,8 @@ def compare_misIdRatios(misIDRatiosNum_original, misIDRatiosNum_closure, misIDRa
 
   canvas.Update()
   mkdir_p(output_dir)
-  canvas.SaveAs("%s/pulls_MCClosure_%s_1.pdf" % (output_dir, name))
-  canvas.SaveAs("%s/pulls_MCClosure_%s_1.png" % (output_dir, name))
+  canvas.SaveAs(os.path.join(output_dir, "pulls_MCClosure_{}_1.pdf".format(name)))
+  canvas.SaveAs(os.path.join(output_dir, "pulls_MCClosure_{}_1.png".format(name)))
 
   canvas.cd()
   bottomPad.Draw()
@@ -351,5 +352,5 @@ def compare_misIdRatios(misIDRatiosNum_original, misIDRatiosNum_closure, misIDRa
   hPull2.Draw("ep1")
 
   canvas.Update()
-  canvas.SaveAs("%s/pulls_MCClosure_%s_2.pdf" % (output_dir, name))
-  canvas.SaveAs("%s/pulls_MCClosure_%s_2.png" % (output_dir, name))
+  canvas.SaveAs(os.path.join(output_dir, "pulls_MCClosure_{}_2.pdf".format(name)))
+  canvas.SaveAs(os.path.join(output_dir, "pulls_MCClosure_{}_2.png".format(name)))
