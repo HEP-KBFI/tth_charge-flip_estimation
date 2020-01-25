@@ -103,14 +103,14 @@ struct DatacardParams
       }
       if(tokens.size() != 3)
       {
-        throw cms::Exception(__func__) << "Invalid argument: " << skip_entry;
+        throw cms::Exception(Form("%s:%d", __func__, __LINE__)) << "Invalid argument: " << skip_entry;
       }
       const std::string charge_choice = tokens.at(0);
       const std::string bin_choice = tokens.at(1);
       const std::string source_choice = tokens.at(2);
       if(std::find(CHARGES.cbegin(), CHARGES.cend(), charge_choice) == CHARGES.cend())
       {
-        throw cms::Exception(__func__) << "Invalid argument: " << charge_choice;
+        throw cms::Exception(Form("%s:%d", __func__, __LINE__)) << "Invalid argument: " << charge_choice;
       }
       bool found_bin = false;
       for(const auto & kv: BINNING)
@@ -123,7 +123,7 @@ struct DatacardParams
       }
       if(! found_bin)
       {
-        throw cms::Exception(__func__) << "Invalid argument: " << bin_choice;
+        throw cms::Exception(Form("%s:%d", __func__, __LINE__)) << "Invalid argument: " << bin_choice;
       }
       if(source_choice == "signal")
       {
@@ -135,7 +135,7 @@ struct DatacardParams
       }
       else
       {
-        throw cms::Exception(__func__) << "Invalid argument: " << source_choice;
+        throw cms::Exception(Form("%s:%d", __func__, __LINE__)) << "Invalid argument: " << source_choice;
       }
     }
   }
