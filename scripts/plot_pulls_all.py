@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, readMisIDRatios, read_exclude_bins, \
-                                                   bin_names_single, get_bin_nr, SmartFormatter
+                                                   BIN_NAMES_SINGLE, get_bin_nr, SmartFormatter
 from tthAnalysis.ChargeFlipEstimation.matrix_solver import calculate_solution, print_ratios_latex, calculate
 from tthAnalysis.ChargeFlipEstimation.plot_pulls import readMisIDRatiosGen, readCategoryRatiosGen, make_pull_plot_21, \
                                                         makeCatRatiosFrom6, compare_misIdRatios
@@ -49,14 +49,7 @@ def select_categories(chi2s, catRatios):
   f.close()
   return nans
 
-RATE_BINS = {
-  0 : 'BL',
-  1 : 'BM',
-  2 : 'BH',
-  3 : 'EL',
-  4 : 'EM',
-  5 : 'EH',
-}
+RATE_BINS = { cat_idx : cat for cat_idx, cat in enumerate(BIN_NAMES_SINGLE) }
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(
@@ -88,7 +81,7 @@ if __name__ == "__main__":
   output_dir = os.path.abspath(args.output)
   exclude_bins = args.exclude
 
-  # Check 1] Check MC closure to solve 21 linear equations using dummy 6 rates:
+  # Check 1: MC closure to solve 21 linear equations using dummy 6 rates:
   #   6 dummy rates ..>
   #   Add them to get 21 rations -->
   #   Solve 21 equation for 6 rates ->
@@ -97,23 +90,22 @@ if __name__ == "__main__":
   rate_dummy = 2.e-5
   eRate_dummy = 1.e-6
   misIDRatiosNum = [ (rate_dummy, eRate_dummy) for _ in RATE_BINS  ]
-  misIDRatios = { bin_names_single[i] : (rate_dummy, eRate_dummy, eRate_dummy) for i in RATE_BINS }
-  print("Mis-identification ratios: (6 dummy rates)")
+  misIDRatios = { BIN_NAMES_SINGLE[i] : (rate_dummy, eRate_dummy, eRate_dummy) for i in RATE_BINS }
+  print("Mis-identification ratios for 6 dummy rates:")
   for bin_idx, bin in RATE_BINS.items():
-    print("  {} {}:  {}".format(bin_idx, bin, misIDRatios[bin]))
+    print("  {} {}:  {} +/- {}".format(bin_idx, bin, misIDRatios[bin][0], misIDRatios[bin][1]))
 
   # Calculate 21 rates from misIdRatios by adding the corresponding of the 6 rates
   catRatiosNum_genSum, catRatios_genSum = makeCatRatiosFrom6(misIDRatios, exclude_bins)
-  print("catRatios_genSum: (6 dummy rates) ")
+  print("Ratios by category for 6 dummy rates:")
   for key, value in catRatios_genSum.items():
-    print("  {}:  {}".format(key, value))
+    print("  {}: {} +/- {}".format(key, value[0], value[1]))
 
-  print("21 categories -> 6 rates:")
   (rates, uncs) = calculate(catRatiosNum_genSum, exclude_bins)
-  print("Calculated rates:")
+  print("Calculated dummy rates:")
   for i in range(0, len(rates)):
-    print("\t {}:  {} +- {}".format(i, rates[i], uncs[i]))
-  compare_misIdRatios(misIDRatiosNum, rates, uncs, name = "dummy_closure", mydir = output_dir, outFileName = "")
+    print("  {}: {} +- {}".format(i, rates[i], uncs[i]))
+  compare_misIdRatios(misIDRatiosNum, rates, uncs, name = "dummy_closure", output_dir = output_dir)
 
   sys.exit(0)
 
@@ -140,7 +132,7 @@ if __name__ == "__main__":
   for i in range(0, len(rates)):
     print("\t {}:  {} +- {}".format(i, rates[i], uncs[i]))
 
-  compare_misIdRatios(misIDRatiosNum, rates, uncs, name = "gen_closure", mydir = output_dir, outFileName = "")
+  compare_misIdRatios(misIDRatiosNum, rates, uncs, name = "gen_closure", output_dir = output_dir)
 
   print("Check 2.2] Check MC clousre using the gen rates:: 6 gen_rec rates ..> Add them to get 21 rations --> Solve 21 equation for 6 rates --> 6 gen_rec rates (caculated) :: ")
   (misIDRatiosNum, misIDRatios) = readMisIDRatiosGen(input_hadd_stage2,
@@ -161,7 +153,7 @@ if __name__ == "__main__":
   for i in range(0, len(rates)):
     print("\t {}:  {} +- {}".format(i, rates[i], uncs[i]))
 
-  compare_misIdRatios(misIDRatiosNum, rates, uncs, name = "gen_rec_closure", mydir = output_dir, outFileName = "")
+  compare_misIdRatios(misIDRatiosNum, rates, uncs, name = "gen_rec_closure", output_dir = output_dir)
 
   print("Check 3] Compare 21 ratios (gen) read from stage2_mass_ll OS/SS histograms and 21 ratios calculated from 6 (gen) rates :: ")
   (misIDRatiosNum, misIDRatios) = readMisIDRatiosGen(input_hadd_stage2)  # read 6 eMisId w.r.t. gen-pT-eta from stage2.root

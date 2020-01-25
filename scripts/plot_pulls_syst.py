@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, bin_names_composite as bin_names, \
-                                                   bin_names_single, mkdir_p
+                                                   BIN_NAMES_SINGLE, mkdir_p
 
 import ROOT
 

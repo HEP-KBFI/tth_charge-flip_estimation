@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from tthAnalysis.ChargeFlipEstimation.utils import mkdir_p, bin_names_single
+from tthAnalysis.ChargeFlipEstimation.utils import mkdir_p, BIN_NAMES_SINGLE
 
 import ROOT
 
@@ -41,8 +41,8 @@ def row_scaler(histo):
 
 def set_axes(histo):
   for i in range(1,7):
-    histo.GetXaxis().SetBinLabel(i,bin_names_single[i-1])
-    histo.GetYaxis().SetBinLabel(i,bin_names_single[i-1])
+    histo.GetXaxis().SetBinLabel(i,BIN_NAMES_SINGLE[i-1])
+    histo.GetYaxis().SetBinLabel(i,BIN_NAMES_SINGLE[i-1])
 
 def plot_transfer_matrix(histo, name, title):
   c = ROOT.TCanvas("Plot", "Plot", 800,800)

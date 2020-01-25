@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from tthAnalysis.ChargeFlipEstimation.utils import bin_names_composite, bin_names_single, mkdir_p
+from tthAnalysis.ChargeFlipEstimation.utils import bin_names_composite, BIN_NAMES_SINGLE, mkdir_p
 from tthAnalysis.ChargeFlipEstimation.plot_pulls import get_other_component, get_all_containers, readMisIDRatiosGen, \
                                                         readCategoryRatiosGen, make_pull_plot_21
 
@@ -17,7 +17,7 @@ def get_bin_nr_composite(cat):
   return bin_names_composite.index(cat)
 
 def get_bin_nr_single(cat):
-  return bin_names_single.index(cat)
+  return BIN_NAMES_SINGLE.index(cat)
 
 def make_pull_plot_gen(category, misIDRatios, catRatios):
   pull_plot = ROOT.TH1D(category, category, 6, 0, 6 )

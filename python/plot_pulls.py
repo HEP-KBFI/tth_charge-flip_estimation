@@ -1,6 +1,6 @@
 from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, BIN_NAMES_COMPOSITE, BIN_NAMES_COMPOSITE_NICE, \
                                                    mkdir_p, get_bin_name_single, get_bin_name, get_bin_name_nice, \
-                                                   get_component_cats, make_title, bin_names_single
+                                                   get_component_cats, make_title, BIN_NAMES_SINGLE
 
 import ROOT
 import math
@@ -85,15 +85,15 @@ def calUncertaintyR(Nos, eNos, Nss, eNss):
   return math.sqrt(term1 + term2)
 
 #Creates 21 category ratios by summing the 6 and their uncertainties
-def makeCatRatiosFrom6(misIDRatios, excluded = []):
+def makeCatRatiosFrom6(misIDRatios, excluded = None):
   ratios = {}
   ratios_num = []
   for cat_idx, cat in enumerate(BIN_NAMES_COMPOSITE_NICE):
-    if cat_idx in excluded: continue
+    if excluded and cat_idx in excluded:
+      continue
     (ratio1, ratio2) = cat.split("_")
     cat_ratio = misIDRatios[ratio1][0] + misIDRatios[ratio2][0]
-    #err = math.sqrt(misIDRatios[ratio1][1]**2 + misIDRatios[ratio2][1]**2)
-    err = misIDRatios[ratio1][1] + misIDRatios[ratio2][1]
+    err = misIDRatios[ratio1][1] + misIDRatios[ratio2][1] #TODO why not add them quadratically?
     ratios[cat] = (cat_ratio, err, err)
     ratios_num.append((cat_ratio, err, err))
   return (ratios_num, ratios)
@@ -182,18 +182,19 @@ def make_pull_plot_21(misIDRatios, catRatios, name = "gen", mydir = "pull_plots_
 def calculateError_N1byN2(N1,eN1, N2,eN2): # formala r = N1/N2
   return math.sqrt(1./(N2**2)*(eN1**2) + N1**2/(N2**4)*(eN2**2) )
 
-def compare_misIdRatios(misIDRatiosNum_original, misIDRatiosNum_closure, misIDRatiosUncNum_closure, name = "",
-                        mydir = "pull_plots_21", outFileName = ""):
-  print("\n\ncompare_misIdRatios():: \n Bin \t rates origianl \t\t rates closure")
-
+def compare_misIdRatios(misIDRatiosNum_original, misIDRatiosNum_closure, misIDRatiosUncNum_closure, name, output_dir):
   hRates_original = ROOT.TH1D("Rates_original", name, len(misIDRatiosNum_original), 0, len(misIDRatiosNum_original))
-  hRates_closure = ROOT.TH1D("Rates_closure", name, len(misIDRatiosNum_original), 0, len(misIDRatiosNum_original))
+  hRates_closure  = ROOT.TH1D("Rates_closure",  name, len(misIDRatiosNum_original), 0, len(misIDRatiosNum_original))
+
+  print("Idx/bin: original vs closure")
   for i in range(len(misIDRatiosNum_original)):
-    print("  %i %s: %f +- %f \t %f +- %f " % (
-    i, bin_names_single[i], misIDRatiosNum_original[i][0], misIDRatiosNum_original[i][1], misIDRatiosNum_closure[i],
-    misIDRatiosUncNum_closure[i]))
-    hRates_original.GetXaxis().SetBinLabel(i + 1, bin_names_single[i])
-    hRates_closure.GetXaxis().SetBinLabel(i + 1, bin_names_single[i])
+    print("  %i %s: %f +- %f        %f +- %f " % (
+      i, BIN_NAMES_SINGLE[i],
+      misIDRatiosNum_original[i][0], misIDRatiosNum_original[i][1],
+      misIDRatiosNum_closure[i],     misIDRatiosUncNum_closure[i]
+    ))
+    hRates_original.GetXaxis().SetBinLabel(i + 1, BIN_NAMES_SINGLE[i])
+    hRates_closure.GetXaxis().SetBinLabel(i + 1, BIN_NAMES_SINGLE[i])
 
     hRates_original.SetBinContent(i + 1, misIDRatiosNum_original[i][0])
     hRates_original.SetBinError(i + 1, misIDRatiosNum_original[i][1])
@@ -202,38 +203,39 @@ def compare_misIdRatios(misIDRatiosNum_original, misIDRatiosNum_closure, misIDRa
 
   ROOT.gStyle.SetOptStat(0)
   canvas = ROOT.TCanvas("canvas", "canvas", 650, 700)
-  canvas.SetFillColor(10);
-  canvas.SetBorderSize(2);
-  canvas.Draw();
+  canvas.SetFillColor(10)
+  canvas.SetBorderSize(2)
+  canvas.Draw()
 
-  topPad = ROOT.TPad("topPad", "topPad", 0.00, 0.34, 1.00, 0.995);
-  topPad.SetFillColor(10);
-  topPad.SetTopMargin(0.1);  # 0.065
-  topPad.SetLeftMargin(0.15);
-  topPad.SetBottomMargin(0.00);
-  topPad.SetRightMargin(0.04);
+  topPad = ROOT.TPad("topPad", "topPad", 0.00, 0.34, 1.00, 0.995)
+  topPad.SetFillColor(10)
+  topPad.SetTopMargin(0.1)
+  topPad.SetLeftMargin(0.15)
+  topPad.SetBottomMargin(0.00)
+  topPad.SetRightMargin(0.04)
   topPad.SetTicks(1, 1)
 
-  bottomPad = ROOT.TPad("bottomPad", "bottomPad", 0.00, 0.01, 1.00, 0.335);
-  bottomPad.SetFillColor(10);
-  bottomPad.SetTopMargin(0.100);
-  bottomPad.SetLeftMargin(0.15);
-  bottomPad.SetBottomMargin(0.35);
-  bottomPad.SetRightMargin(0.04);
+  bottomPad = ROOT.TPad("bottomPad", "bottomPad", 0.00, 0.01, 1.00, 0.335)
+  bottomPad.SetFillColor(10)
+  bottomPad.SetTopMargin(0.100)
+  bottomPad.SetLeftMargin(0.15)
+  bottomPad.SetBottomMargin(0.35)
+  bottomPad.SetRightMargin(0.04)
   bottomPad.SetTicks(1, 1)
 
-  canvas.cd();
-  topPad.Draw();
-  topPad.cd();
+  canvas.cd()
+  topPad.Draw()
+  topPad.cd()
 
-  print("hRates_original_1:: axis range: {},  {}".format(hRates_original.GetMinimum(), hRates_original.GetMaximum()))
   hRates_original.SetLineColor(ROOT.kRed)
   hRates_original.SetLineWidth(3)
   hRates_closure.SetLineWidth(2)
   hRates_original.GetYaxis().SetTitle("Rates")
-  hRates_original.SetAxisRange(0.2 * min(hRates_original.GetMinimum(), hRates_closure.GetMinimum()),
-                               1.3 * max(hRates_original.GetMaximum(), hRates_closure.GetMaximum()), "Y")
-  print("hRates_original_2:: axis range: {},  {}".format(hRates_original.GetMinimum(), hRates_original.GetMaximum()))
+  hRates_original.SetAxisRange(
+    0.2 * min(hRates_original.GetMinimum(), hRates_closure.GetMinimum()),
+    1.3 * max(hRates_original.GetMaximum(), hRates_closure.GetMaximum()),
+    "Y"
+  )
 
   hRates_original.Draw("e1")
   hRates_closure.Draw("e1 same")
@@ -247,36 +249,33 @@ def compare_misIdRatios(misIDRatiosNum_original, misIDRatiosNum_closure, misIDRa
   leg.AddEntry(hRates_closure, "Calculated after closure", "l")
   leg.Draw()
 
-  canvas.cd();
-  bottomPad.Draw();
-  bottomPad.cd();
+  canvas.cd()
+  bottomPad.Draw()
+  bottomPad.cd()
 
   hPull1 = hRates_original.Clone("pull1_misIdRates_Closure")
-  if (not hPull1.GetSumw2()):
+  if not hPull1.GetSumw2():
     hPull1.SetSumw2()
-  hPull1.SetTitle("");
-  hPull1.SetStats(False);
-  # hPull1.SetMinimum(-1.2);
-  # hPull1.SetMaximum(+1.2);
-  hPull1.SetMarkerColor(hRates_original.GetMarkerColor());
-  hPull1.SetMarkerStyle(hRates_original.GetMarkerStyle());
-  hPull1.SetMarkerSize(hRates_original.GetMarkerSize());
-  hPull1.SetLineColor(hRates_original.GetLineColor());
+  hPull1.SetTitle("")
+  hPull1.SetStats(False)
+  hPull1.SetMarkerColor(hRates_original.GetMarkerColor())
+  hPull1.SetMarkerStyle(hRates_original.GetMarkerStyle())
+  hPull1.SetMarkerSize(hRates_original.GetMarkerSize())
+  hPull1.SetLineColor(hRates_original.GetLineColor())
   hPull1.GetYaxis().SetTitle("#frac{Closure - Initial}{Initial}")
 
   hPull2 = hRates_original.Clone("pull2_misIdRates_Closure")
-  if (not hPull2.GetSumw2()):
+  if not hPull2.GetSumw2():
     hPull2.SetSumw2()
-  hPull2.SetTitle("");
-  hPull2.SetStats(False);
-  # hPull2.SetMinimum(-1.2);
-  # hPull2.SetMaximum(+1.2);
-  hPull2.SetMarkerColor(hRates_original.GetMarkerColor());
-  hPull2.SetMarkerStyle(hRates_original.GetMarkerStyle());
-  hPull2.SetMarkerSize(hRates_original.GetMarkerSize());
-  hPull2.SetLineColor(hRates_original.GetLineColor());
+  hPull2.SetTitle("")
+  hPull2.SetStats(False)
+  hPull2.SetMarkerColor(hRates_original.GetMarkerColor())
+  hPull2.SetMarkerStyle(hRates_original.GetMarkerStyle())
+  hPull2.SetMarkerSize(hRates_original.GetMarkerSize())
+  hPull2.SetLineColor(hRates_original.GetLineColor())
   hPull2.GetYaxis().SetTitle("#frac{Closure - Initial}{#Sigma}")
 
+  print("(e)N0 -- original error rate; (e)N1 -- closure error rate")
   for i in range(1, hPull1.GetNbinsX() + 1):
     N0 = hRates_original.GetBinContent(i)
     eN0 = hRates_original.GetBinError(i)
@@ -291,76 +290,66 @@ def compare_misIdRatios(misIDRatiosNum_original, misIDRatiosNum_closure, misIDRa
       hPull2.SetBinContent(i, (N1 - N0) / max(eN0, eN1))
       hPull2.SetBinError(i, 0)
 
-      print(" \t bin %i: N0: %E +- %E,  N1: %E +- %E,  N1/N0: %.12f +- %E,  eN1/eN0: %f  diff/Sigma: %E" % (
-      i, N0, eN0, N1, eN1, N1 / N0, err, eN1 / eN0, (N1 - N0) / max(eN0, eN1)))
+      print("  %i: N0: %E +- %E,  N1: %E +- %E,  N1/N0: %.12f +- %E,  eN1/eN0: %f  diff/Sigma: %E" % (
+        i, N0, eN0, N1, eN1, N1 / N0, err, eN1 / eN0, (N1 - N0) / max(eN0, eN1)
+      ))
 
-  print("hPull1_1:: axis range: {},  {}".format(hPull1.GetMinimum(), hPull1.GetMaximum()))
-  # hPull1.SetAxisRange(min(1.2*hPull1.GetMinimum(), -1), 1.3*hPull1.GetMaximum(), "Y")
-  hPull1.SetAxisRange(min(1.2 * hPull1.GetBinContent(hPull1.GetMinimumBin()), -1),
-                      max(1.5 * hPull1.GetBinContent(hPull1.GetMaximumBin()), 1.), "Y")
-  # hPull1.SetAxisRange(-1, 3, "Y")
-  xAxis_bottom = hPull1.GetXaxis();
+  hPull1.SetAxisRange(
+    min(1.2 * hPull1.GetBinContent(hPull1.GetMinimumBin()), -1),
+    max(1.5 * hPull1.GetBinContent(hPull1.GetMaximumBin()), 1.),
+    "Y"
+  )
+  xAxis_bottom = hPull1.GetXaxis()
   xAxis_bottom.SetLabelSize(0.10)
-  yAxis_bottom = hPull1.GetYaxis();
+  yAxis_bottom = hPull1.GetYaxis()
   yAxis_bottom.SetTitle("#frac{Closure - Initial}{Initial}")
   yAxis_bottom.CenterTitle()
   yAxis_bottom.SetNdivisions(505)
   yAxis_bottom.SetLabelSize(0.07)
   yAxis_bottom.SetTitleSize(0.07)
   yAxis_bottom.SetTitleOffset(0.9)
-  print("hPull1_2:: axis range: {},  {}".format(hPull1.GetMinimum(), hPull1.GetMaximum()))
-  for i in range(1, hPull1.GetNbinsX() + 1):
-    print("\thPull1:: %i, %.12f %E" % (i, hPull1.GetBinContent(i), hPull1.GetBinError(i)))
 
   hPull1.Draw("ep1")
 
   line0 = ROOT.TF1("line0", "0", xAxis_bottom.GetXmin(), xAxis_bottom.GetXmax())
-  line0.SetLineStyle(3);
-  line0.SetLineColor(1);
-  line0.Draw("same");
+  line0.SetLineStyle(3)
+  line0.SetLineColor(1)
+  line0.Draw("same")
 
   hPull1.Draw("ep1 same")
   hPull1.Draw("axis same")
 
   canvas.Update()
-  mkdir_p(mydir)
-  canvas.SaveAs("%s/pulls_MCClosure_%s_1.pdf" % (mydir, name))
-  canvas.SaveAs("%s/pulls_MCClosure_%s_1.png" % (mydir, name))
+  mkdir_p(output_dir)
+  canvas.SaveAs("%s/pulls_MCClosure_%s_1.pdf" % (output_dir, name))
+  canvas.SaveAs("%s/pulls_MCClosure_%s_1.png" % (output_dir, name))
 
-  canvas.cd();
-  bottomPad.Draw();
-  bottomPad.cd();
+  canvas.cd()
+  bottomPad.Draw()
+  bottomPad.cd()
 
-  print("hPull2_1:: axis range: {},  {}".format(hPull2.GetMinimum(), hPull2.GetMaximum()))
-  # hPull2.SetAxisRange(0.8*hPull2.GetMinimum(), 1.3*hPull2.GetMaximum(), "Y")
   hPull2.SetAxisRange(
     min(0.5 * hPull2.GetBinContent(hPull2.GetMinimumBin()), 1.3 * hPull2.GetBinContent(hPull2.GetMinimumBin())),
-    1.3 * hPull2.GetBinContent(hPull2.GetMaximumBin()), "Y")
-  # hPull2.SetAxisRange(-2,2, "Y")
-  xAxis_bottom = hPull2.GetXaxis();
+    1.3 * hPull2.GetBinContent(hPull2.GetMaximumBin()),
+    "Y"
+  )
+  xAxis_bottom = hPull2.GetXaxis()
   xAxis_bottom.SetLabelSize(0.10)
-  yAxis_bottom = hPull2.GetYaxis();
+  yAxis_bottom = hPull2.GetYaxis()
   yAxis_bottom.SetTitle("#frac{Closure - Initial}{#sigma}")
   yAxis_bottom.CenterTitle()
   yAxis_bottom.SetNdivisions(505)
   yAxis_bottom.SetLabelSize(0.07)
   yAxis_bottom.SetTitleSize(0.07)
   yAxis_bottom.SetTitleOffset(0.6)
-  print("hPull2_2:: axis range: {},  {}".format(hPull2.GetMinimum(), hPull2.GetMaximum()))
-  for i in range(1, hPull2.GetNbinsX() + 1):
-    print("\thPull2:: %i, %.12f %E" % (i, hPull2.GetBinContent(i), hPull2.GetBinError(i)))
+
   hPull2.SetMarkerStyle(20)
   hPull2.SetMarkerSize(2)
   hPull2.SetMarkerColor(hRates_original.GetLineColor())
   hPull2.SetLineColor(hRates_original.GetLineColor())
   hPull2.SetLineWidth(2)
-  print("hRates_original: GetMarkerStyle: {}, GetMarkerSize: {}, GetMarkerColor: {}, GetLineColor: {}".format(
-    hRates_original.GetMarkerStyle(), hRates_original.GetMarkerSize(), hRates_original.GetMarkerColor(),
-    hRates_original.GetLineColor()))
-
   hPull2.Draw("ep1")
 
   canvas.Update()
-  mkdir_p(mydir)
-  canvas.SaveAs("%s/pulls_MCClosure_%s_2.pdf" % (mydir, name))
-  canvas.SaveAs("%s/pulls_MCClosure_%s_2.png" % (mydir, name))
+  canvas.SaveAs("%s/pulls_MCClosure_%s_2.pdf" % (output_dir, name))
+  canvas.SaveAs("%s/pulls_MCClosure_%s_2.png" % (output_dir, name))

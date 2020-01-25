@@ -29,14 +29,9 @@ BIN_NAMES_COMPOSITE = [
 
 """Nicer bin names - historical reason why 2 sets used
    TODO: change the format in ntuples"""
-BIN_NAMES_COMPOSITE_NICE = [
-  "BL_BL", "BM_BL", "BM_BM", "BH_BL", "BH_BM", "BH_BH",
-  "EL_EL", "EM_EL", "EM_EM", "EH_EL", "EH_EM", "EH_EH",
-  "BL_EL", "BM_EL", "EM_BL", "BM_EM", "BH_EL", "EH_BL",
-  "BH_EM", "EH_BM", "BH_EH",
-]
+BIN_NAMES_COMPOSITE_NICE = [ '{}{}_{}{}'.format(b[0], b[3], b[1], b[4]) for b in BIN_NAMES_COMPOSITE ]
 
-bin_names_single = [ "BL", "BM", "BH", "EL", "EM", "EH" ]
+BIN_NAMES_SINGLE = [ "BL", "BM", "BH", "EL", "EM", "EH" ]
 
 def get_component_cats(nice_name):
   return nice_name.split("_")
@@ -79,7 +74,7 @@ def readMisIDRatios(file_misId):
   return ratios
   
 def get_bin_name_single(bin_nr_eta, bin_nr_pt):
-  return bin_names_single[(bin_nr_eta - 1) * 3 + (bin_nr_pt - 1)]
+  return BIN_NAMES_SINGLE[(bin_nr_eta - 1) * 3 + (bin_nr_pt - 1)]
   
 def get_bin_name(bin_nr):
   return BIN_NAMES_COMPOSITE[bin_nr]

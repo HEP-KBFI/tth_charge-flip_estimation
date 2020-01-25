@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, bin_names_composite, bin_names_single, \
+from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, bin_names_composite, BIN_NAMES_SINGLE, \
                                                    mkdir_p, readMisIDRatios
 from tthAnalysis.ChargeFlipEstimation.plot_pulls import get_other_component, get_all_containers
 
@@ -16,7 +16,7 @@ def get_bin_nr_composite(cat):
   return bin_names_composite.index(cat)
 
 def get_bin_nr_single(cat):
-  return bin_names_single.index(cat)
+  return BIN_NAMES_SINGLE.index(cat)
 
 def make_pull_plot(category, misIDRatios, catRatios, datastring, fitname, fittype):
   pull_plot = ROOT.TH1D(category, category, 6, 0, 6 );
@@ -56,7 +56,7 @@ if __name__ == "__main__":
         misIDRatios = readMisIdRatios(file_misId)
         catRatios = read_category_ratios(file_cats)
 
-        for bin in bin_names_single:
+        for bin in BIN_NAMES_SINGLE:
           make_pull_plot(bin, misIDRatios, catRatios, datastring, fitname, fittype)
 
 
