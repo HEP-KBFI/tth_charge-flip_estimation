@@ -8,6 +8,12 @@ from tthAnalysis.ChargeFlipEstimation.utils import CHARGES, BIN_NAMES_COMPOSITE,
 
 import ROOT
 
+COLOR_INT = 17
+ALPHA = 0.40
+COLOR = ROOT.gROOT.GetColor(COLOR_INT)
+NEWCOLOR_INT = ROOT.gROOT.GetListOfColors().GetSize() + 1
+NEWCOLOR = ROOT.TColor(NEWCOLOR_INT, COLOR.GetRed(), COLOR.GetGreen(), COLOR.GetBlue(), "", ALPHA)
+
 def addLabel_CMS_preliminary(x0, y0, x0_luminosity, luminosity00):
   label_cms = ROOT.TPaveText(x0, y0 + 0.0025, x0 + 0.0950, y0 + 0.0600, "NDC")
   label_cms.AddText("CMS")
@@ -43,22 +49,13 @@ def addLabel_CMS_preliminary(x0, y0, x0_luminosity, luminosity00):
   label_luminosity.Draw()
 
 def setStyle_uncertainty(histogram):
-  color_int = 17
-  alpha = 0.40
-  color = ROOT.gROOT.GetColor(color_int)
-  newColor_int = ROOT.gROOT.GetListOfColors().GetSize() + 1
-  newColor = ROOT.TColor(newColor_int, color.GetRed(), color.GetGreen(), color.GetBlue(), "", alpha)
-  histogram.SetLineColor(newColor_int)
+  histogram.SetLineColor(NEWCOLOR_INT)
   histogram.SetLineWidth(0)
-  histogram.SetFillColor(newColor_int)
+  histogram.SetFillColor(NEWCOLOR_INT)
   histogram.SetFillStyle(1001)
 
 def loadHistogram(inputFile, directoryName, histogramName, doHistoNorm_dNBydM):
-  histogramName_full = directoryName
-  if histogramName_full > 0 and histogramName_full[-1] != '/' :
-    histogramName_full.append("/")
-  histogramName_full.append(histogramName)
-
+  histogramName_full = os.path.join(directoryName, histogramName)
   print("loading histogram = {} from file = {}".format(histogramName_full, inputFile.GetName()))
   histogram = inputFile.Get(histogramName_full)
   print("histogram = {}".format(histogram))
@@ -226,7 +223,7 @@ def makePlot(inputFileName_full, directoryName, xMin, xMax, xAxisTitle, yAxisTit
   histogram_ref.Draw("axissame")
 
   if showLegend:
-    legend = ROOT.TLegend(0.6600, 0.7400, 0.9350, 0.9200, None, "brNDC")
+    legend = ROOT.TLegend(0.6600, 0.7400, 0.9350, 0.9200, "", "brNDC")
     legend.SetFillStyle(0)
     legend.SetBorderSize(0)
     legend.SetFillColor(10)
@@ -430,7 +427,7 @@ if __name__ == '__main__':
   )
   parser.add_argument('-E', '--extension',
     type = str, dest = 'extension', metavar = 'extension', required = False, nargs = '+',
-    choices = [ 'png', 'pdf', 'root' ], default = 'png',
+    choices = [ 'png', 'pdf', 'root' ], default = [ 'png' ],
     help = 'R|Extension of output plots',
   )
   args = parser.parse_args()
@@ -450,52 +447,42 @@ if __name__ == '__main__':
   fits = [ "prefit", "postfit" ]
 
   plots = []
-  for chr in args.charge:
+  for charge in args.charge:
     for cat in BIN_NAMES_COMPOSITE:
-      sChrCat = "{}_{}".format(chr, cat)
-      if args.categories and sChrCat not in args.categories:
+      charge_cat = "{}_{}".format(charge, cat)
+      if args.categories and charge_cat not in args.categories:
         continue
-      if sChrCat in args.exclude:
+      if charge_cat in args.exclude:
         continue
       for fit in fits:
-        sPlot = "{}_{}".format(sChrCat, fit)
-        plots.append(sPlot)
-        print("plotting: {}, categryBin: {}".format(sPlot, categoryNum[cat]))
+        plot = "{}_{}".format(charge_cat, fit)
+        plots.append(plot)
+        print("plotting: {}, categryBin: {}".format(plot, categoryNum[cat]))
 
-  for plot in plots:
-    sCharge, sCategory, fit = plot.split('_')
+        if charge == "OS":
+          pass_or_fail = "fail"
+        elif charge == "SS":
+          pass_or_fail = "pass"
+        else:
+          assert(False)
 
-    if "OS" in plot:
-      sCharge1 = "fail"
-    elif "SS" in plot:
-      sCharge1 = "pass"
-    else:
-      assert(False)
+        print(
+            "Plot: %18s,  category: %s,  bin: %2i,  sCharge: %s,  fit: %s" %
+            (plot, cat, categoryNum[cat], pass_or_fail, fit)
+        )
 
-    if "prefit" in plot:
-      sFit = "prefit"
-    elif "postfit" in plot:
-      sFit = "postfit"
-    else:
-      assert(False)
+        bin_dir = os.path.join(input_path, "bin{}".format(categoryNum[cat]))
+        inputFileName  = os.path.join(bin_dir, "output_postfit.root")
+        outputFileName = os.path.join(
+          bin_dir, "FitPlots_{}_{}_{}_{}.root".format(charge, categoryNum[cat], cat, fit)
+        )
 
-    print(
-        "Plot: %18s,  category: %s,  bin: %2i,  sCharge: %s,  sFit: %s" %
-        (plot, sCategory, categoryNum[sCategory], sCharge1, sFit)
-    )
-
-    bin_dir = os.path.join(input_path, "bin{}".format(categoryNum[sCategory]))
-    inputFileName  = os.path.join(bin_dir, "output_postfit.root")
-    outputFileName = os.path.join(
-      bin_dir, "FitPlots_%s_%i_%s_%s.root".format(sCharge,categoryNum[sCategory],sCategory,sFit)
-    )
-
-    makePlot(
-      inputFileName, "%s_%s" % (sCharge1,sFit),
-      args.xmin, args.xmax, args.title_x,
-      args.title_y, args.ymin, args.ymax,
-      args.show_legend, args.legend,
-      "{} {}".format(sCategory, sCharge), sFit,
-      outputFileName, args.show_log,
-      args.int_lumi, args.normalize, args.extension
-    )
+        makePlot(
+          inputFileName, "%s_%s" % (pass_or_fail, fit),
+          args.xmin, args.xmax, args.title_x,
+          args.title_y, args.ymin, args.ymax,
+          args.show_legend, args.legend,
+          "{} {}".format(cat, charge), fit,
+          outputFileName, args.show_log,
+          args.int_lumi, args.normalize, args.extension
+        )
