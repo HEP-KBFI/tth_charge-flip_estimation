@@ -29,8 +29,9 @@ PVALUE = 0.1
 NSIGMAS = scipy.stats.norm.ppf(1. - PVALUE)
 RATE_BINS = { cat_idx : cat for cat_idx, cat in enumerate(BIN_NAMES_SINGLE) }
 
-def read_fits(input_dir):
-  fit_results = os.path.join(input_dir, "results_cat.txt")
+def read_fits(input_dir, fit_results_filename):
+  fit_results = os.path.join(input_dir, fit_results_filename)
+  assert(os.path.isfile(fit_results))
   catRatiosNum, catRatios = read_category_ratios(fit_results)
   nans = []
   for bin_name in catRatios:
@@ -96,6 +97,10 @@ if __name__ == "__main__":
     type = str, dest = 'input_hadd', metavar = 'file', required = True,
     help = 'R|Input hadd stage2 file',
   )
+  parser.add_argument('-r', '--fit-results',
+    type = str, dest = 'fit_results', metavar = 'filename', required = True,
+    help = 'R|Fit results filename (NB! base name, not pull path, eg results_cat.txt)',
+  )
   parser.add_argument('-o', '--output',
     type = str, dest = 'output', metavar = 'directory', required = True,
     help = 'R|Output directory',
@@ -110,6 +115,7 @@ if __name__ == "__main__":
   )
   args = parser.parse_args()
 
+  fit_results_filename = args.fit_results
   input_hadd_stage2 = args.input_hadd
   input_data_dir = args.fits_data
   input_pseudodata_dir = args.fits_pseudodata
@@ -266,7 +272,7 @@ if __name__ == "__main__":
   #   - read 21 category ratios
   #   - drop categories which we don't want to consider or those that have large chi2 in Check 3/4
   print('=' * 120)
-  catRatios_pseudo, catRatiosNum_pseudo, nans_pseudo, nans_pseudo_num = read_fits(input_pseudodata_dir)
+  catRatios_pseudo, catRatiosNum_pseudo, nans_pseudo, nans_pseudo_num = read_fits(input_pseudodata_dir, fit_results_filename)
   if print_in_latex:
     print(get_ratios_latex(catRatiosNum_pseudo, "pseudodata (all bins)"))
 
@@ -301,7 +307,7 @@ if __name__ == "__main__":
 
   # Fit results for pseudodata and data first without and then with excluding some categories
   print('=' * 120)
-  catRatios_data, catRatiosNum_data, nans_data, nans_data_num = read_fits(input_data_dir)
+  catRatios_data, catRatiosNum_data, nans_data, nans_data_num = read_fits(input_data_dir, fit_results_filename)
   if print_in_latex:
     print(get_ratios_latex(catRatiosNum_data, "data (all bins)"))
   for is_data in [ False, True ]:
