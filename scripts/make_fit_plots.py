@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
-from tthAnalysis.ChargeFlipEstimation.utils import CHARGES, BIN_NAMES_COMPOSITE, SmartFormatter
-
-import ROOT
 import math
 import os.path
 import argparse
 
-ROOT.gROOT.SetBatch(True)
+from tthAnalysis.ChargeFlipEstimation.utils import CHARGES, BIN_NAMES_COMPOSITE, SmartFormatter
+
+import ROOT
 
 def addLabel_CMS_preliminary(x0, y0, x0_luminosity, luminosity00):
   label_cms = ROOT.TPaveText(x0, y0 + 0.0025, x0 + 0.0950, y0 + 0.0600, "NDC")
@@ -366,10 +365,6 @@ def makePlot(inputFileName_full, directoryName, xMin, xMax, xAxisTitle, yAxisTit
   del inputFile
 
 if __name__ == '__main__':
-  ROOT.gStyle.SetPadTickX(1)
-  ROOT.gStyle.SetPadTickY(1)
-  ROOT.TH1.AddDirectory(False)
-
   parser = argparse.ArgumentParser(
     formatter_class = lambda prog: SmartFormatter(prog, max_help_position = 35)
   )
@@ -439,6 +434,12 @@ if __name__ == '__main__':
     help = 'R|Extension of output plots',
   )
   args = parser.parse_args()
+
+  ROOT.gStyle.SetPadTickX(1)
+  ROOT.gStyle.SetPadTickY(1)
+  ROOT.TH1.AddDirectory(False)
+  ROOT.gROOT.SetBatch(True)
+
   input_path = os.path.abspath(args.input)
   assert(os.path.isdir(input_path))
 
