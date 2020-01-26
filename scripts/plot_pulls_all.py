@@ -11,7 +11,6 @@ import math
 import argparse
 import os
 import copy
-import sys
 
 ROOT.gROOT.SetBatch(True)
 ROOT.TH1.SetDefaultSumw2()
@@ -296,77 +295,3 @@ if __name__ == "__main__":
       for bin, chi2 in chi2s_excl.items():
         print("  {} {:.3f}{}".format(bin, chi2, " > {:.3f} => exclude".format(NSIGMAS) if chi2 > NSIGMAS else ""))
   print('=' * 120 + '\n')
-  sys.exit(0)
-
-  # Read generator-level ratios (misIDRatios: 6 for single electrons, catRatios for 21 categories of double electrons)
-  # Numeric values are used for matrix solver
-  (misIDRatiosNum, misIDRatios) = readMisIDRatiosGen(input_hadd_stage2)  # read 6 eMisId w.r.t. gen-pT-eta from stage2.root
-  catRatiosNum, catRatios = readCategoryRatiosGen(input_hadd_stage2)  # calculate 21 r=SS/(OS+SS) from gen_massll from stage2.root
-  # Print latex results for gen-level ratios
-
-  # Makes a pull plot comparing the 21 numbers to sums of respective ones from 6
-  print("The ratios for gen-level electrons with gen-level pT and eta:")
-  # chi2s = make_pull_plot_21(misIDRatios, catRatios, mydir = mydir1, y_range = (-0.001, 0.011))
-  chi2s = make_pull_plot_21(misIDRatios, catRatios, mydir = output_dir, y_range = (-0.001, 0.011),
-                            outFileName = "fit_output_pseudodata_%s/fit_res.root" % FITNAME)
-
-  print("The ratios for gen-level electrons with reconstructed pT and eta:")
-  (misIDRatiosNum, misIDRatios) = readMisIDRatiosGen(input_hadd_stage2, rec = "_rec")
-  catRatiosNum, catRatios = readCategoryRatiosGen(input_hadd_stage2, gen = "gen_rec")
-  # chi2s = make_pull_plot_21(misIDRatios, catRatios, mydir = mydir1, y_range = (-0.001, 0.011), name = "gen_rec")
-  chi2s = make_pull_plot_21(misIDRatios, catRatios, mydir = output_dir, y_range = (-0.001, 0.011), name = "gen_rec",
-                            outFileName = "fit_output_pseudodata_%s/fit_res.root" % FITNAME)
-
-  print("Closure test to see if we get 6 number back if we construct the 21 from the 6 and then fit")
-  print("Turns out this underestimates uncertainty (due to correlations)")
-  #(exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
-  catRatiosNum, catRatios = makeCatRatiosFrom6(misIDRatios, exclude_bins)
-  calculate_solution(catRatiosNum, exclude_bins_num, FITNAME, "closure", "pseudodata")
-
-  catRatiosNum, catRatios = read_category_ratios("fit_output_pseudodata_%s/results_cat.txt" % (FITNAME))
-  # Selects categories to drop and writes them to file
-  # Comment out the following line and edit the file manually to specify the categories to be dropped yourself
-  nans = []
-  nans = select_categories(chi2s, catRatios)
-
-  print("Make pull plots for both cases of not dropping and dropping categories")
-  for exclude in [False, True]:
-    fittypestring = "_gen_rec"
-    file_misId = "fit_output_pseudodata_%s/fit_res%s.root" % (FITNAME, fittypestring)
-    name = "gen_rec_fit"
-    exclude_bins, exclude_bins_num = [], []
-    if exclude:
-      #(exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
-      name += "_exclusions"
-      fittypestring += "_exclusions"
-    catRatiosNum, catRatios = readCategoryRatiosGen(input_hadd_stage2, exclude_bins, gen = "gen_rec")
-    calculate_solution(catRatiosNum, exclude_bins_num, FITNAME, fittypestring, "pseudodata")
-    misIDRatios = readMisIDRatios(file_misId)
-    make_pull_plot_21(misIDRatios, catRatios, mydir = output_dir, name = name, y_range = (-0.001, 0.011),
-                      excluded = exclude_bins)
-
-  print("Fit results for pseudodata and data first without and then with excluding some categories")
-  FITTYPE = ""  # can use also "shapes" or "hybrid" here if the fit results exist
-  # fCompare = TFile("CompareResults.root","recreate")
-  for datastring in ["pseudodata", "data"]:
-    fittypestring = FITTYPE
-    for exclude in [False, True]:
-      if len(FITTYPE) > 0: fittypestring = "_" + FITTYPE
-      file_cats = "fit_output_%s_%s/results_cat%s.txt" % (datastring, FITNAME, fittypestring)
-      print("Data: ", datastring, ", exclude: ", exclude, ", i/p result file: ", file_cats)
-      name = datastring
-      # Still exclude NaN fit results from non_exclusion results
-      exclude_bins, exclude_bins_num = nans, map(get_bin_nr, nans)
-      if exclude:
-        #(exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
-        name += "_exclusions"
-        fittypestring += "_exclusions"
-      file_misId = "fit_output_%s_%s/fit_res%s.root" % (datastring, FITNAME, fittypestring)
-      catRatiosNum, catRatios = read_category_ratios(file_cats, exclude_bins)
-      calculate_solution(catRatiosNum, exclude_bins_num, FITNAME, fittypestring, datastring)
-      misIDRatios = readMisIDRatios(file_misId)
-
-      make_pull_plot_21(misIDRatios, catRatios, mydir = output_dir, name = name, y_range = (-0.001, 0.011),
-                        excluded = exclude_bins, outFileName = file_misId)
-
-  print("End..")
