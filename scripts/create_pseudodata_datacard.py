@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from tthAnalysis.ChargeFlipEstimation.utils import BIN_NAMES_COMPOSITE, SmartFormatter
+from tthAnalysis.ChargeFlipEstimation.utils import BIN_NAMES_COMPOSITE, SmartFormatter, CHARGES
 
 import ROOT
 import numpy as np
@@ -34,8 +34,6 @@ CATEGORIES = {
   "ele" : BIN_NAMES_COMPOSITE, # 21 categories of lepton pairs by pT and eta
   "mu"  : [ "total" ],         # For muons all in the same cateogry
 }
-
-CHARGES = [ "OS", "SS" ]
 PREFIX = 'ttH_charge_flip'
 
 # Systematic uncertainties to add to datacard

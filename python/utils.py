@@ -19,6 +19,8 @@ class SmartFormatter(argparse.ArgumentDefaultsHelpFormatter):
       return text[2:].splitlines()
     return argparse.ArgumentDefaultsHelpFormatter._split_lines(self, text, width)
 
+CHARGES = [ "OS", "SS" ]
+
 """Bin names in the form they are in the ntuple"""
 BIN_NAMES_COMPOSITE = [
   "BB_LL", "BB_ML", "BB_MM", "BB_HL", "BB_HM", "BB_HH",
