@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, readMisIDRatios, fit_results_to_file, \
                                                    BIN_NAMES_SINGLE, BIN_NAMES_COMPOSITE_NICE, get_bin_nr, SmartFormatter
@@ -20,6 +21,7 @@ Script for plotting pulls comparing result from 21 and 6 categories
 Selects which categories of 21 to drop because of correlations and solves the equations for different cases
 
 @author Andres Tiko <andres.tiko@cern.ch>
+@author Karl Ehatäht <karl.ehataht@cern.ch>
 """
 
 # Number of sigmas difference to consider fit results not compatible
