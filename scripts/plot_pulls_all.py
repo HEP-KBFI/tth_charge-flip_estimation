@@ -24,6 +24,8 @@ Selects which categories of 21 to drop because of correlations and solves the eq
 @author Karl Ehatäht <karl.ehataht@cern.ch>
 """
 
+#TODO add option to print out latex
+
 # Number of sigmas difference to consider fit results not compatible
 PVALUE = 0.1
 NSIGMAS = scipy.stats.norm.ppf(1. - PVALUE)
