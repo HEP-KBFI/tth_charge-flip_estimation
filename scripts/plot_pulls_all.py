@@ -27,6 +27,44 @@ PVALUE = 0.1
 NSIGMAS = scipy.stats.norm.ppf(1. - PVALUE)
 RATE_BINS = { cat_idx : cat for cat_idx, cat in enumerate(BIN_NAMES_SINGLE) }
 
+def read_fits(input_dir):
+  fit_results = os.path.join(input_dir, "results_cat.txt")
+  catRatiosNum, catRatios = read_category_ratios(fit_results)
+  nans = []
+  for bin_name in catRatios:
+    if math.isnan(catRatios[bin_name][0]):
+      nans.append(bin_name)
+  nans_num = [ get_bin_nr(bin_name) for bin_name in nans ]
+  print("Read the following rates from file {}".format(fit_results))
+  for bin_name in BIN_NAMES_COMPOSITE_NICE:
+    catRatio = catRatios[bin_name]
+    print("  {}: {} + {} - {}".format(bin_name, catRatio[0], catRatio[1], catRatio[2]))
+  return catRatios, nans, nans_num
+
+def merge_excludable_bins(exclude_by_singificance = None, exclude_by_nan = None, exclude_by_request = None):
+  exclude_result = []
+  if exclude_by_singificance:
+    assert(all(bin_name in BIN_NAMES_COMPOSITE_NICE for bin_name in exclude_by_singificance))
+    for bin_name in exclude_by_singificance:
+      if bin_name not in exclude_result:
+        exclude_result.append(bin_name)
+    print("Excluding because not passing the signficance test: {}".format(", ".join(exclude_by_singificance)))
+  if exclude_by_nan:
+    assert (all(bin_name in BIN_NAMES_COMPOSITE_NICE for bin_name in exclude_by_nan))
+    for bin_name in exclude_by_nan:
+      if bin_name not in exclude_result:
+        exclude_result.append(bin_name)
+    print("Excluding because fit resulted in NaN: {}".format(", ".join(exclude_by_nan)))
+  if exclude_by_request:
+    assert (all(bin_name in BIN_NAMES_COMPOSITE_NICE for bin_name in exclude_by_request))
+    for bin_name in exclude_by_nan:
+      if bin_name not in exclude_result:
+        exclude_result.append(bin_name)
+    print("Excluding because explicitly requested to skip: {}".format(", ".join(exclude_by_request)))
+  print("Verdit -> excluding the following categories: {}".format(", ".join(exclude_result)))
+  exclude_result_num = [ get_bin_nr(bin_name) for bin_name in exclude_result ]
+  return exclude_result, exclude_result_num
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(
     formatter_class = lambda prog: SmartFormatter(prog, max_help_position = 35)
@@ -174,13 +212,11 @@ if __name__ == "__main__":
 
   # Check 4: test to see if we get 6 number back if we construct the 21 rates from
   #          the 6 generator vs reconstruction level rates and then fit
-  exclude_bins = exclude_genRec
-  for bin in exclude_bins_additional:
-    if bin not in exclude_bins:
-      exclude_bins.append(bin)
-  exclude_bins_num = [ get_bin_nr(bin_name) for bin_name in exclude_bins ]
-  catRatiosNum_testGenRec, catRatios_testGenRec = makeCatRatiosFrom6(misIDRatios_genRec, exclude_bins_num)
-  rates_testGenRec, uncs_testGenRec = calculate(catRatiosNum_testGenRec, exclude_bins_num)
+  exclude_testGenRec, exclude_testGenRec_num = merge_excludable_bins(
+    exclude_by_singificance = exclude_genRec, exclude_by_request = exclude_bins_additional
+  )
+  catRatiosNum_testGenRec, catRatios_testGenRec = makeCatRatiosFrom6(misIDRatios_genRec, exclude_testGenRec_num)
+  rates_testGenRec, uncs_testGenRec = calculate(catRatiosNum_testGenRec, exclude_testGenRec_num)
   print("Re-calculated generator vs reconstruction level rates:")
   for bin_idx, rate in enumerate(rates_testGenRec):
     print("  {}: {} +- {}".format(bin_idx, rate, uncs_testGenRec[bin_idx]))
@@ -192,35 +228,18 @@ if __name__ == "__main__":
   #   - read 21 category ratios
   #   - drop categories which we don't want to consider or those that have large chi2 in Check 3/4
   print('=' * 120)
-  fit_results_pseudodata = os.path.join(input_pseudodata_dir, "results_cat.txt")
-  catRatiosNum_pseudo, catRatios_pseudo = read_category_ratios(fit_results_pseudodata)
-  nans_pseudo = []
-  for bin_name in catRatios_pseudo:
-    if math.isnan(catRatios_pseudo[bin_name][0]):
-      nans_pseudo.append(bin_name)
-  nans_pseudo_num = [ get_bin_nr(bin_name) for bin_name in nans_pseudo ]
-  print("Read the following rates from file {}".format(fit_results_pseudodata))
-  for bin_name in BIN_NAMES_COMPOSITE_NICE:
-    catRatio_pseudo = catRatios_pseudo[bin_name]
-    print("  {}: {} + {} - {}".format(bin_name, catRatio_pseudo[0], catRatio_pseudo[1], catRatio_pseudo[2]))
-  if nans_pseudo:
-    for nan_pseudo in nans_pseudo:
-      print("Excluding category {} because it's not a number".format(nan_pseudo))
-      if nan_pseudo not in exclude_bins:
-        exclude_bins.append(nan_pseudo)
-    exclude_bins_num = [ get_bin_nr(bin_name) for bin_name in exclude_bins ]
+  catRatios_pseudo, nans_pseudo, nans_pseudo_num = read_fits(input_pseudodata_dir)
 
   # Creating pull plots for both cases of not dropping (categories except the ones with NaN ratio) and dropping categories
-  print("Categories with NaN: {}".format(', '.join(nans_pseudo)))
-  print('Categories not surpassing significance test: {}'.format(', '.join(exclude_bins)))
   for exclude in [ False, True ]:
     exclude_suffix = "_exclusions" if exclude else ""
     output_fit_pseudo_excl = os.path.join(output_dir, "fit_result_genRec_pseudo{}.root".format(exclude_suffix))
 
-    exclude_bins_genRec_excl = exclude_bins if exclude else nans_pseudo
-    exclude_bins_num_genRec_excl = [ get_bin_nr(bin_name) for bin_name in exclude_bins_genRec_excl ]
-    print("Excluding categories: {}".format(", ".join(exclude_bins_genRec_excl)))
-
+    exclude_bins_genRec_excl, exclude_bins_num_genRec_excl = merge_excludable_bins(
+      exclude_by_singificance = exclude_genRec if exclude else None,
+      exclude_by_nan          = nans_pseudo,
+      exclude_by_request      = exclude_bins_additional
+    )
     catRatiosNum_genRec_excl, catRatios_genRec_excl = readCategoryRatiosGen(
       input_hadd_stage2, is_gen = False, exclude_bins = exclude_bins_genRec_excl
     )
@@ -236,31 +255,28 @@ if __name__ == "__main__":
   print('=' * 120 + '\n')
   sys.exit(0)
 
-  print("Step 6.2] Fit results for pseudodata and data first without and then with excluding some categories")
-  FITTYPE = ""  # can use also "shapes" or "hybrid" here if the fit results exist
-  # fCompare = TFile("CompareResults.root","recreate")
-  for datastring in ["pseudodata", "data"]:
-    fittypestring = FITTYPE
-    for exclude in [False, True]:
-      if len(FITTYPE) > 0: fittypestring = "_" + FITTYPE
-      file_cats = "fit_output_%s_%s/results_cat%s.txt" % (datastring, FITNAME, fittypestring)
-      print "Data: ", datastring, ", exclude: ", exclude, ", i/p result file: ", file_cats;
-      name = datastring
-      # Still exclude NaN fit results from non_exclusion results
-      exclude_bins, exclude_bins_num = nans, map(get_bin_nr, nans)
+  # Fit results for pseudodata and data first without and then with excluding some categories
+  print('=' * 120)
+  for is_data in [ False, True ]:
+    for exclude in [ False, True ]:
+      fit_results = os.path.join(input_data_dir if is_data else input_pseudodata_dir, "results_cat.txt")
+      name = "data" if is_data else "pseudodata"
+      # read the fit ratios first!
+      exclude_bins_genRec_excl = exclude_bins if exclude else nans_pseudo
+      exclude_bins_num_genRec_excl = [get_bin_nr(bin_name) for bin_name in exclude_bins_genRec_excl]
       if exclude:
         #(exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
         name += "_exclusions"
         fittypestring += "_exclusions"
       file_misId = "fit_output_%s_%s/fit_res%s.root" % (datastring, FITNAME, fittypestring)
-      catRatiosNum, catRatios = read_category_ratios(file_cats, exclude_bins)
+      catRatiosNum, catRatios = read_category_ratios(fit_results)
       calculate_solution(catRatiosNum, exclude_bins_num, FITNAME, fittypestring, datastring)
       misIDRatios = readMisIDRatios(file_misId)
 
       make_pull_plot_21(misIDRatios, catRatios, mydir = output_dir, name = name, y_range = (-0.001, 0.011),
                         excluded = exclude_bins, outFileName = file_misId)
-
-  print("End..")
+  print('=' * 120 + '\n')
+  sys.exit(0)
 
   # Read generator-level ratios (misIDRatios: 6 for single electrons, catRatios for 21 categories of double electrons)
   # Numeric values are used for matrix solver
