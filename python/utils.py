@@ -112,9 +112,9 @@ def make_title(name):
     title = "Pseudodata"
   elif name == "pseudodata_exclusions":
     title = "Pseudodata, some categories excluded"
-  elif name == "Data":
+  elif name == "data":
     title = "Data"
-  elif name == "Data_exclusions":
+  elif name == "data_exclusions":
     title = "Data, some categories excluded"
   return title
   

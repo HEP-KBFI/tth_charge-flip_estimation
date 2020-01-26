@@ -10,6 +10,7 @@ import ROOT
 import math
 import argparse
 import os
+import copy
 import sys
 
 ROOT.gROOT.SetBatch(True)
@@ -39,7 +40,7 @@ def read_fits(input_dir):
   for bin_name in BIN_NAMES_COMPOSITE_NICE:
     catRatio = catRatios[bin_name]
     print("  {}: {} + {} - {}".format(bin_name, catRatio[0], catRatio[1], catRatio[2]))
-  return catRatios, nans, nans_num
+  return catRatios, catRatiosNum, nans, nans_num
 
 def merge_excludable_bins(exclude_by_singificance = None, exclude_by_nan = None, exclude_by_request = None):
   exclude_result = []
@@ -64,6 +65,19 @@ def merge_excludable_bins(exclude_by_singificance = None, exclude_by_nan = None,
   print("Verdit -> excluding the following categories: {}".format(", ".join(exclude_result)))
   exclude_result_num = [ get_bin_nr(bin_name) for bin_name in exclude_result ]
   return exclude_result, exclude_result_num
+
+def exclude_cats(catRatiosNum, catRatios, exclude_bins, exclude_bins_num):
+  assert(len(exclude_bins) == len(exclude_bins_num))
+  catRatios_excl = copy.deepcopy(catRatios)
+  for bin_name in exclude_bins:
+    assert(bin_name in catRatios_excl)
+    del catRatios_excl[bin_name]
+  catRatiosNum_excl = []
+  for bin_idx, ratios in enumerate(catRatiosNum):
+    if bin_idx not in exclude_bins_num:
+      catRatiosNum_excl.append(ratios)
+  assert(len(catRatios_excl) == len(catRatiosNum_excl))
+  return catRatios_excl, catRatiosNum_excl
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(
@@ -228,7 +242,7 @@ if __name__ == "__main__":
   #   - read 21 category ratios
   #   - drop categories which we don't want to consider or those that have large chi2 in Check 3/4
   print('=' * 120)
-  catRatios_pseudo, nans_pseudo, nans_pseudo_num = read_fits(input_pseudodata_dir)
+  catRatios_pseudo, catRatiosNum_pseudo, nans_pseudo, nans_pseudo_num = read_fits(input_pseudodata_dir)
 
   # Creating pull plots for both cases of not dropping (categories except the ones with NaN ratio) and dropping categories
   for exclude in [ False, True ]:
@@ -253,28 +267,34 @@ if __name__ == "__main__":
     for bin, chi2 in chi2s_genRec_excl.items():
       print("  {} {:.3f}{}".format(bin, chi2, " > {:.3f} => exclude".format(NSIGMAS) if chi2 > NSIGMAS else ""))
   print('=' * 120 + '\n')
-  sys.exit(0)
 
   # Fit results for pseudodata and data first without and then with excluding some categories
   print('=' * 120)
+  catRatios_data, catRatiosNum_data, nans_data, nans_data_num = read_fits(input_data_dir)
   for is_data in [ False, True ]:
     for exclude in [ False, True ]:
-      fit_results = os.path.join(input_data_dir if is_data else input_pseudodata_dir, "results_cat.txt")
-      name = "data" if is_data else "pseudodata"
+      name = "{}data{}".format("" if is_data else "pseudo", "_exclusions" if exclude else "")
       # read the fit ratios first!
-      exclude_bins_genRec_excl = exclude_bins if exclude else nans_pseudo
-      exclude_bins_num_genRec_excl = [get_bin_nr(bin_name) for bin_name in exclude_bins_genRec_excl]
-      if exclude:
-        #(exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
-        name += "_exclusions"
-        fittypestring += "_exclusions"
-      file_misId = "fit_output_%s_%s/fit_res%s.root" % (datastring, FITNAME, fittypestring)
-      catRatiosNum, catRatios = read_category_ratios(fit_results)
-      calculate_solution(catRatiosNum, exclude_bins_num, FITNAME, fittypestring, datastring)
-      misIDRatios = readMisIDRatios(file_misId)
-
-      make_pull_plot_21(misIDRatios, catRatios, mydir = output_dir, name = name, y_range = (-0.001, 0.011),
-                        excluded = exclude_bins, outFileName = file_misId)
+      exclude_bins_excl, exclude_bins_num_excl = merge_excludable_bins(
+        exclude_by_singificance = exclude_genRec if exclude else None,
+        exclude_by_nan          = nans_data if is_data else nans_pseudo,
+        exclude_by_request      = exclude_bins_additional
+      )
+      output_fit_excl = os.path.join(output_dir, "fit_result_{}.root".format(name))
+      catRatios_excl, catRatiosNum_excl = exclude_cats(
+        catRatiosNum_data if is_data else catRatiosNum_pseudo,
+        catRatios_data    if is_data else catRatios_pseudo,
+        exclude_bins_excl, exclude_bins_num_excl
+      )
+      calculate_solution(catRatiosNum_excl, exclude_bins_num_excl, output_fit_excl)
+      misIDRatios_excl = readMisIDRatios(output_fit_excl)
+      chi2s_excl = make_pull_plot_21(
+        misIDRatios_excl, catRatios_excl, name = name, output_dir = output_dir,
+        y_range = (-0.001, 0.011), excluded = exclude_bins_num_excl
+      )
+      print("chi2:")
+      for bin, chi2 in chi2s_excl.items():
+        print("  {} {:.3f}{}".format(bin, chi2, " > {:.3f} => exclude".format(NSIGMAS) if chi2 > NSIGMAS else ""))
   print('=' * 120 + '\n')
   sys.exit(0)
 
