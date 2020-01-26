@@ -2,7 +2,7 @@
 
 from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, readMisIDRatios, fit_results_to_file, \
                                                    BIN_NAMES_SINGLE, BIN_NAMES_COMPOSITE_NICE, get_bin_nr, SmartFormatter
-from tthAnalysis.ChargeFlipEstimation.matrix_solver import calculate_solution, print_ratios_latex, calculate
+from tthAnalysis.ChargeFlipEstimation.matrix_solver import calculate_solution, calculate
 from tthAnalysis.ChargeFlipEstimation.plot_pulls import readMisIDRatiosGen, readCategoryRatiosGen, make_pull_plot_21, \
                                                         makeCatRatiosFrom6, compare_misIdRatios
 import scipy.stats
@@ -25,12 +25,6 @@ Selects which categories of 21 to drop because of correlations and solves the eq
 # Number of sigmas difference to consider fit results not compatible
 PVALUE = 0.1
 NSIGMAS = scipy.stats.norm.ppf(1. - PVALUE)
-
-# File to store list of excluded categories
-EXCLUDED_CATEGORIES_2016 = [ "BM_BL", "EM_EM", "EH_EH", "EM_BL", "BH_EH", "EH_EL", "BL_EL", "EL_EL", "BH_BL", "BH_BM" ]
-EXCLUDED_CATEGORIES_2017 = [ "EM_EM", "EM_EL", "EH_EH", "BL_BL", "EH_BM", "EH_EL", "EL_EL", "EH_BL", "BH_BM" ]
-EXCLUDED_CATEGORIES_2018 = [ "BM_BL", "EM_EM", "EM_EL", "BH_EM", "BL_BL", "EH_BM", "EH_EL", "BH_BH", "BL_EL", "EL_EL", "BH_BL", "BH_BM" ]
-
 RATE_BINS = { cat_idx : cat for cat_idx, cat in enumerate(BIN_NAMES_SINGLE) }
 
 if __name__ == "__main__":
@@ -273,7 +267,6 @@ if __name__ == "__main__":
   (misIDRatiosNum, misIDRatios) = readMisIDRatiosGen(input_hadd_stage2)  # read 6 eMisId w.r.t. gen-pT-eta from stage2.root
   catRatiosNum, catRatios = readCategoryRatiosGen(input_hadd_stage2)  # calculate 21 r=SS/(OS+SS) from gen_massll from stage2.root
   # Print latex results for gen-level ratios
-  print_ratios_latex(misIDRatiosNum, "gen")
 
   # Makes a pull plot comparing the 21 numbers to sums of respective ones from 6
   print("The ratios for gen-level electrons with gen-level pT and eta:")
@@ -284,7 +277,6 @@ if __name__ == "__main__":
   print("The ratios for gen-level electrons with reconstructed pT and eta:")
   (misIDRatiosNum, misIDRatios) = readMisIDRatiosGen(input_hadd_stage2, rec = "_rec")
   catRatiosNum, catRatios = readCategoryRatiosGen(input_hadd_stage2, gen = "gen_rec")
-  print_ratios_latex(misIDRatiosNum, "gen_rec")
   # chi2s = make_pull_plot_21(misIDRatios, catRatios, mydir = mydir1, y_range = (-0.001, 0.011), name = "gen_rec")
   chi2s = make_pull_plot_21(misIDRatios, catRatios, mydir = output_dir, y_range = (-0.001, 0.011), name = "gen_rec",
                             outFileName = "fit_output_pseudodata_%s/fit_res.root" % FITNAME)
