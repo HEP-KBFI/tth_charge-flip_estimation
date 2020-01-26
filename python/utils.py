@@ -45,32 +45,38 @@ def mkdir_p(path):
         else:
             raise
 
-def read_category_ratios(file_cats, exclude_bins = []):
-  f = open(file_cats)  
-  bins = []
+def read_category_ratios(input_filename):
+  assert(os.path.isfile(input_filename))
   ratios_dict = {}
   ratios = []
-  for line in f.readlines():
-    spl = line.split(",")
-    bin_nr = int(spl[0])
-    #Skip some bins
-    bin_name = BIN_NAMES_COMPOSITE_NICE[bin_nr]
-    if bin_nr in exclude_bins: continue
-    if bin_name in exclude_bins: continue
-    if float(spl[2]) == 0: 
-      spl[2] = 1e-8
-      spl[3] = 1e-8
-    ratios.append((float(spl[1]), float(spl[2]), float(spl[3])))
-    ratios_dict[bin_name] = (float(spl[1]), float(spl[2]), float(spl[3]) )    
-  return (ratios, ratios_dict)
+  with open(input_filename, 'r') as input_file:
+    for line in input_file:
+      line_split = line.split(", ")
+      bin_nr = int(line_split[0])
+      bin_name = BIN_NAMES_COMPOSITE_NICE[bin_nr]
+      ratio = float(line_split[1])
+      ratio_err_up = float(line_split[2])
+      ratio_err_down = float(line_split[3])
+      if ratio_err_up == 0.:
+        ratio_err_up = 1.e-8
+        ratio_err_down = 1.e-8
+      ratios.append((ratio, ratio_err_up, ratio_err_down))
+      ratios_dict[bin_name] = (ratio, ratio_err_up, ratio_err_down)
+  assert(len(ratios_dict) == len(BIN_NAMES_COMPOSITE_NICE))
+  return ratios, ratios_dict
 
-def readMisIDRatios(file_misId):
-  f = ROOT.TFile(file_misId)
-  misIdHisto = f.Get("chargeMisId")
+def readMisIDRatios(input_filename):
+  input_file = ROOT.TFile(input_filename, "read")
+  misIdHisto = input_file.Get("chargeMisId")
   ratios = {}
-  for etaBin in range(1, misIdHisto.GetNbinsY()+1):
-    for ptBin in range(1, misIdHisto.GetNbinsX()+1):
-      ratios[get_bin_name_single(etaBin, ptBin)] = (misIdHisto.GetBinContent(ptBin, etaBin), misIdHisto.GetBinError(ptBin, etaBin), misIdHisto.GetBinError(ptBin, etaBin))
+  for etaBin in range(1, misIdHisto.GetNbinsY() + 1):
+    for ptBin in range(1, misIdHisto.GetNbinsX() + 1):
+      ratios[get_bin_name_single(etaBin, ptBin)] = (
+        misIdHisto.GetBinContent(ptBin, etaBin),
+        misIdHisto.GetBinError  (ptBin, etaBin),
+        misIdHisto.GetBinError  (ptBin, etaBin),
+      )
+  input_file.Close()
   return ratios
   
 def get_bin_name_single(bin_nr_eta, bin_nr_pt):
@@ -93,7 +99,11 @@ def make_title(name):
   if name == "gen":
     title = "Generator-level"
   elif name == "genRec":
-    title = "Generator-level wrt reconstructed p_{T} and #eta"
+    title = "Gen-level wrt reco p_{T} and #eta"
+  elif name == "genRec_fit":
+    title = "Gen-level wrt reco p_{T} and #eta, misID rates from solving equations"
+  elif name == "genRec_fit_exclusions":
+    title = "Gen-level wrt reco p_{T} and #eta, misID rates from solving equations, some categories excluded"
   elif name == "gen_fit":
     title = "Generator-level, misID rates from solving equations"
   elif name == "gen_fit_exclusions":

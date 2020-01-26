@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, readMisIDRatios, fit_results_to_file, \
-                                                   BIN_NAMES_SINGLE, get_bin_nr, SmartFormatter
+                                                   BIN_NAMES_SINGLE, BIN_NAMES_COMPOSITE_NICE, get_bin_nr, SmartFormatter
 from tthAnalysis.ChargeFlipEstimation.matrix_solver import calculate_solution, print_ratios_latex, calculate
 from tthAnalysis.ChargeFlipEstimation.plot_pulls import readMisIDRatiosGen, readCategoryRatiosGen, make_pull_plot_21, \
                                                         makeCatRatiosFrom6, compare_misIdRatios
@@ -27,28 +27,9 @@ PVALUE = 0.1
 NSIGMAS = scipy.stats.norm.ppf(1. - PVALUE)
 
 # File to store list of excluded categories
-EXCLUDED_FILE = "/home/ssawant/VHbbNtuples_10_x/CMSSW_10_2_13/src/tthAnalysis/ChargeFlipEstimation/bin/../data/excluded_categories.txt"
-
 EXCLUDED_CATEGORIES_2016 = [ "BM_BL", "EM_EM", "EH_EH", "EM_BL", "BH_EH", "EH_EL", "BL_EL", "EL_EL", "BH_BL", "BH_BM" ]
 EXCLUDED_CATEGORIES_2017 = [ "EM_EM", "EM_EL", "EH_EH", "BL_BL", "EH_BM", "EH_EL", "EL_EL", "EH_BL", "BH_BM" ]
 EXCLUDED_CATEGORIES_2018 = [ "BM_BL", "EM_EM", "EM_EL", "BH_EM", "BL_BL", "EH_BM", "EH_EL", "BH_BH", "BL_EL", "EL_EL", "BH_BL", "BH_BM" ]
-
-# Writes to the specified file list of categories to exclude
-def select_categories(chi2s, catRatios):
-  f = open(EXCLUDED_FILE, "w")
-  nans = []
-  print("Checking which categories to drop:")
-  for (k, v) in chi2s.items():
-    if v > NSIGMAS or math.isnan(catRatios[k][0]):
-      f.write("%s\n" % k)
-    print("Category %s, with a difference of %.2f sigmas, %s." % (k, v, "dropped" if (v > NSIGMAS or math.isnan(catRatios[k][0])) else "not dropped"))
-    if math.isnan(catRatios[k][0]):
-      print(" (NaN in fit results)")
-      nans.append(k)
-    else:
-      print("")
-  f.close()
-  return nans
 
 RATE_BINS = { cat_idx : cat for cat_idx, cat in enumerate(BIN_NAMES_SINGLE) }
 
@@ -79,7 +60,20 @@ if __name__ == "__main__":
   args = parser.parse_args()
 
   input_hadd_stage2 = args.input_hadd
+  input_data_dir = args.fits_data
+  input_pseudodata_dir = args.fits_pseudodata
   output_dir = os.path.abspath(args.output)
+  exclude_bins_additional = args.exclude
+  assert(os.path.isfile(input_hadd_stage2))
+  assert(os.path.isdir(input_data_dir))
+  assert (os.path.isdir(input_pseudodata_dir))
+  assert(all(bin in BIN_NAMES_COMPOSITE_NICE for bin in exclude_bins_additional))
+
+  print("Input hadd stage2 file:     {}".format(input_hadd_stage2))
+  print("Input data directory:       {}".format(input_data_dir))
+  print("Input pseudodata directory: {}".format(input_pseudodata_dir))
+  print("Output directory:           {}".format(output_dir))
+  print("Bins to explicitly exclude: {}".format(exclude_bins_additional))
 
   # Check 1: MC closure to solve 21 linear equations using dummy 6 rates:
   #   6 dummy rates ->
@@ -186,9 +180,12 @@ if __name__ == "__main__":
 
   # Check 4: test to see if we get 6 number back if we construct the 21 rates from
   #          the 6 generator vs reconstruction level rates and then fit
-  exclude_bins = exclude_bins_genRec
+  exclude_bins = exclude_genRec
+  for bin in exclude_bins_additional:
+    if bin not in exclude_bins:
+      exclude_bins.append(bin)
   exclude_bins_num = [ get_bin_nr(bin_name) for bin_name in exclude_bins ]
-  catRatiosNum_testGenRec, catRatios_testGenRec = makeCatRatiosFrom6(misIDRatios_genRec, exclude_bins)
+  catRatiosNum_testGenRec, catRatios_testGenRec = makeCatRatiosFrom6(misIDRatios_genRec, exclude_bins_num)
   rates_testGenRec, uncs_testGenRec = calculate(catRatiosNum_testGenRec, exclude_bins_num)
   print("Re-calculated generator vs reconstruction level rates:")
   for bin_idx, rate in enumerate(rates_testGenRec):
@@ -197,30 +194,53 @@ if __name__ == "__main__":
   fit_results_to_file(rates_testGenRec, uncs_testGenRec, fitResult_genRec)
   print('=' * 120 + '\n')
 
+  # Actual calculation starts from here:
+  #   - read 21 category ratios
+  #   - drop categories which we don't want to consider or those that have large chi2 in Check 3/4
+  print('=' * 120)
+  fit_results_pseudodata = os.path.join(input_pseudodata_dir, "results_cat.txt")
+  catRatiosNum_pseudo, catRatios_pseudo = read_category_ratios(fit_results_pseudodata)
+  nans_pseudo = []
+  for bin_name in catRatios_pseudo:
+    if math.isnan(catRatios_pseudo[bin_name][0]):
+      nans_pseudo.append(bin_name)
+  nans_pseudo_num = [ get_bin_nr(bin_name) for bin_name in nans_pseudo ]
+  print("Read the following rates from file {}".format(fit_results_pseudodata))
+  for bin_name in BIN_NAMES_COMPOSITE_NICE:
+    catRatio_pseudo = catRatios_pseudo[bin_name]
+    print("  {}: {} + {} - {}".format(bin_name, catRatio_pseudo[0], catRatio_pseudo[1], catRatio_pseudo[2]))
+  if nans_pseudo:
+    for nan_pseudo in nans_pseudo:
+      print("Excluding category {} because it's not a number".format(nan_pseudo))
+      if nan_pseudo not in exclude_bins:
+        exclude_bins.append(nan_pseudo)
+    exclude_bins_num = [ get_bin_nr(bin_name) for bin_name in exclude_bins ]
+
+  # Creating pull plots for both cases of not dropping (categories except the ones with NaN ratio) and dropping categories
+  print("Categories with NaN: {}".format(', '.join(nans_pseudo)))
+  print('Categories not surpassing significance test: {}'.format(', '.join(exclude_bins)))
+  for exclude in [ False, True ]:
+    exclude_suffix = "_exclusions" if exclude else ""
+    output_fit_pseudo_excl = os.path.join(output_dir, "fit_result_genRec_pseudo{}.root".format(exclude_suffix))
+
+    exclude_bins_genRec_excl = exclude_bins if exclude else nans_pseudo
+    exclude_bins_num_genRec_excl = [ get_bin_nr(bin_name) for bin_name in exclude_bins_genRec_excl ]
+    print("Excluding categories: {}".format(", ".join(exclude_bins_genRec_excl)))
+
+    catRatiosNum_genRec_excl, catRatios_genRec_excl = readCategoryRatiosGen(
+      input_hadd_stage2, is_gen = False, exclude_bins = exclude_bins_genRec_excl
+    )
+    calculate_solution(catRatiosNum_genRec_excl, exclude_bins_num_genRec_excl, output_fit_pseudo_excl)
+    misIDRatios_genRec_excl = readMisIDRatios(output_fit_pseudo_excl)
+    chi2s_genRec_excl = make_pull_plot_21(
+      misIDRatios_genRec_excl, catRatios_genRec_excl, name = "genRec_fit{}".format(exclude_suffix),
+      output_dir = output_dir, y_range = (-0.001, 0.011), excluded = exclude_bins_num_genRec_excl
+    )
+    print("chi2:")
+    for bin, chi2 in chi2s_genRec_excl.items():
+      print("  {} {:.3f}{}".format(bin, chi2, " > {:.3f} => exclude".format(NSIGMAS) if chi2 > NSIGMAS else ""))
+  print('=' * 120 + '\n')
   sys.exit(0)
-
-  print("Step 6] Actual calculation starts from here. Read 21 category ratios. Drop categories which we don't want to consider or those have large chi2 in (gen_rec) comparison of 21 rates (from mass_ll histogram) and (from sum of 6 gen_rec rates) (Check 4) ")
-  catRatiosNum, catRatios = read_category_ratios("fit_output_pseudodata_%s/results_cat.txt" % (FITNAME))
-  # Selects categories to drop and writes them to file
-  # Comment out the following line and edit the file manually to specify the categories to be dropped yourself
-  nans = []
-  nans = select_categories(chi2s, catRatios)
-
-  print("Step 6.1] Make pull plots for both cases of not dropping and dropping categories")
-  for exclude in [False, True]:
-    fittypestring = "_gen_rec"
-    file_misId = "fit_output_pseudodata_%s/fit_res%s.root" % (FITNAME, fittypestring)
-    name = "gen_rec_fit"
-    exclude_bins, exclude_bins_num = [], []
-    if exclude:
-      #(exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
-      name += "_exclusions"
-      fittypestring += "_exclusions"
-    catRatiosNum, catRatios = readCategoryRatiosGen(input_hadd_stage2, exclude_bins, gen = "gen_rec")
-    calculate_solution(catRatiosNum, exclude_bins_num, FITNAME, fittypestring, "pseudodata")
-    misIDRatios = readMisIDRatios(file_misId)
-    make_pull_plot_21(misIDRatios, catRatios, mydir = output_dir, name = name, y_range = (-0.001, 0.011),
-                      excluded = exclude_bins)
 
   print("Step 6.2] Fit results for pseudodata and data first without and then with excluding some categories")
   FITTYPE = ""  # can use also "shapes" or "hybrid" here if the fit results exist
