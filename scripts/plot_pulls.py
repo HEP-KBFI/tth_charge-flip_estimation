@@ -3,7 +3,7 @@
 
 from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, readMisIDRatios, fit_results_to_file, \
                                                    BIN_NAMES_SINGLE, BIN_NAMES_COMPOSITE_NICE, get_bin_nr, SmartFormatter
-from tthAnalysis.ChargeFlipEstimation.matrix_solver import calculate_solution, calculate
+from tthAnalysis.ChargeFlipEstimation.matrix_solver import calculate_solution, calculate, get_solution_latex, get_ratios_latex
 from tthAnalysis.ChargeFlipEstimation.plot_pulls import readMisIDRatiosGen, readCategoryRatiosGen, make_pull_plot_21, \
                                                         makeCatRatiosFrom6, compare_misIdRatios
 import scipy.stats
@@ -23,8 +23,6 @@ Selects which categories of 21 to drop because of correlations and solves the eq
 @author Andres Tiko <andres.tiko@cern.ch>
 @author Karl Ehatäht <karl.ehataht@cern.ch>
 """
-
-#TODO add option to print out latex
 
 # Number of sigmas difference to consider fit results not compatible
 PVALUE = 0.1
@@ -106,6 +104,10 @@ if __name__ == "__main__":
     type = str, dest = 'exclude', metavar = 'bin', required = False, nargs = '+', default = [],
     help = 'R|Additional bins to exclude (in nice nomenclature, eg BL_BL not BB_LL)',
   )
+  parser.add_argument('-l', '--latex',
+    dest = 'latex', action = 'store_true', default = False,
+    help = 'R|Print results in LaTeX-formatted table',
+  )
   args = parser.parse_args()
 
   input_hadd_stage2 = args.input_hadd
@@ -113,6 +115,7 @@ if __name__ == "__main__":
   input_pseudodata_dir = args.fits_pseudodata
   output_dir = os.path.abspath(args.output)
   exclude_bins_additional = args.exclude
+  print_in_latex = args.latex
   assert(os.path.isfile(input_hadd_stage2))
   assert(os.path.isdir(input_data_dir))
   assert (os.path.isdir(input_pseudodata_dir))
@@ -144,12 +147,16 @@ if __name__ == "__main__":
   print("Ratios by category for 6 dummy rates:")
   for bin_idx, value in catRatios_dummySum.items():
     print("  {}: {} +/- {}".format(bin_idx, value[0], value[1]))
+  if print_in_latex:
+    print(get_ratios_latex(catRatiosNum_dummySum, "dummy"))
 
   rates_dummy, uncs_dummy = calculate(catRatiosNum_dummySum, exclude_bins_dummy)
   print("Calculated dummy rates:")
   for bin_idx, rate in enumerate(rates_dummy):
     print("  {}: {} +- {}".format(bin_idx, rate, uncs_dummy[bin_idx]))
   compare_misIdRatios(misIDRatiosNum_dummy, rates_dummy, uncs_dummy, name = "dummy_closure", output_dir = output_dir)
+  if print_in_latex:
+    print(get_solution_latex(rates_dummy, uncs_dummy, "dummy"))
   print('=' * 120 + '\n')
 
   # Check 2: MC clousre using the gen rates:
@@ -169,15 +176,21 @@ if __name__ == "__main__":
   print("Ratios by category for 6 generator-level rates:")
   for bin_idx, value in catRatios_genSum.items():
     print("  {}: {} +/- {}".format(bin_idx, value[0], value[1]))
+  if print_in_latex:
+    print(get_ratios_latex(catRatiosNum_genSum, "generator-level sum"))
 
   rates_gen, uncs_gen = calculate(catRatiosNum_genSum, exclude_bins_gen)
   print("Calculated generator-level rates:")
   for bin_idx, rate in enumerate(rates_gen):
     print("  {}: {} +- {}".format(bin_idx, rate, uncs_gen[bin_idx]))
+  if print_in_latex:
+    print(get_solution_latex(rates_gen, uncs_gen, "generator-level"))
   compare_misIdRatios(misIDRatiosNum_gen, rates_gen, uncs_gen, name = "gen_closure", output_dir = output_dir)
 
   print("Comparing 21 ratios from di-lepton mass histograms to the calculated gen rates")
   catRatiosNum_gen, catRatios_gen = readCategoryRatiosGen(input_hadd_stage2, is_gen = True)
+  if print_in_latex:
+    print(get_ratios_latex(catRatiosNum_gen, "generator-level"))
   chi2s_gen = make_pull_plot_21(
     misIDRatios_gen, catRatios_gen, name = "gen", output_dir = output_dir,
     y_range = (-0.001, 0.011), excluded = exclude_bins_gen,
@@ -207,15 +220,21 @@ if __name__ == "__main__":
   print("Ratios by category for 6 generator vs reconstruction level rates:")
   for bin_idx, value in catRatios_genRecSum.items():
     print("  {}: {} +/- {}".format(bin_idx, value[0], value[1]))
+  if print_in_latex:
+    print(get_ratios_latex(catRatiosNum_genRecSum, "generator vs reconstruction level sum"))
 
   rates_genRec, uncs_genRec = calculate(catRatiosNum_genRecSum, exclude_bins_genRec)
   print("Calculated generator vs reconstruction level rates:")
   for bin_idx, rate in enumerate(rates_genRec):
     print("  {}: {} +- {}".format(bin_idx, rate, uncs_genRec[bin_idx]))
+  if print_in_latex:
+    print(get_solution_latex(rates_genRec, uncs_genRec, "generator vs reconstruction level"))
   compare_misIdRatios(misIDRatiosNum_genRec, rates_genRec, uncs_genRec, name = "genRec_closure", output_dir = output_dir)
 
   print("Comparing 21 ratios from di-lepton mass histograms to the calculated generator vs reconstruction level rates")
   catRatiosNum_genRec, catRatios_genRec = readCategoryRatiosGen(input_hadd_stage2, is_gen = False)
+  if print_in_latex:
+    print(get_ratios_latex(catRatiosNum_genRec, "generator vs reconstruction level"))
   chi2s_genRec = make_pull_plot_21(
     misIDRatios_genRec, catRatios_genRec, name = "genRec", output_dir = output_dir,
     y_range = (-0.001, 0.011), excluded = exclude_bins_genRec,
@@ -237,6 +256,8 @@ if __name__ == "__main__":
   print("Re-calculated generator vs reconstruction level rates:")
   for bin_idx, rate in enumerate(rates_testGenRec):
     print("  {}: {} +- {}".format(bin_idx, rate, uncs_testGenRec[bin_idx]))
+  if print_in_latex:
+    print(get_solution_latex(rates_testGenRec, uncs_testGenRec, "generator vs reconstruction level (recomputed)"))
   fitResult_genRec = os.path.join(output_dir, "fit_result_genRec.root")
   fit_results_to_file(rates_testGenRec, uncs_testGenRec, fitResult_genRec)
   print('=' * 120 + '\n')
@@ -246,6 +267,8 @@ if __name__ == "__main__":
   #   - drop categories which we don't want to consider or those that have large chi2 in Check 3/4
   print('=' * 120)
   catRatios_pseudo, catRatiosNum_pseudo, nans_pseudo, nans_pseudo_num = read_fits(input_pseudodata_dir)
+  if print_in_latex:
+    print(get_ratios_latex(catRatiosNum_pseudo, "pseudodata (all bins)"))
 
   # Creating pull plots for both cases of not dropping (categories except the ones with NaN ratio) and dropping categories
   for exclude in [ False, True ]:
@@ -260,7 +283,12 @@ if __name__ == "__main__":
     catRatiosNum_genRec_excl, catRatios_genRec_excl = readCategoryRatiosGen(
       input_hadd_stage2, is_gen = False, exclude_bins = exclude_bins_genRec_excl
     )
-    calculate_solution(catRatiosNum_genRec_excl, exclude_bins_num_genRec_excl, output_fit_pseudo_excl)
+    datastring = "gen vs reco ({} bins)".format("excluded" if exclude else "all")
+    if print_in_latex:
+      print(get_ratios_latex(catRatiosNum_genRec_excl, datastring))
+    calculate_solution(
+      catRatiosNum_genRec_excl, exclude_bins_num_genRec_excl, output_fit_pseudo_excl, datastring if print_in_latex else ""
+    )
     misIDRatios_genRec_excl = readMisIDRatios(output_fit_pseudo_excl)
     chi2s_genRec_excl = make_pull_plot_21(
       misIDRatios_genRec_excl, catRatios_genRec_excl, name = "genRec_fit{}".format(exclude_suffix),
@@ -274,6 +302,8 @@ if __name__ == "__main__":
   # Fit results for pseudodata and data first without and then with excluding some categories
   print('=' * 120)
   catRatios_data, catRatiosNum_data, nans_data, nans_data_num = read_fits(input_data_dir)
+  if print_in_latex:
+    print(get_ratios_latex(catRatiosNum_data, "data (all bins)"))
   for is_data in [ False, True ]:
     for exclude in [ False, True ]:
       name = "{}data{}".format("" if is_data else "pseudo", "_exclusions" if exclude else "")
@@ -289,7 +319,9 @@ if __name__ == "__main__":
         catRatios_data    if is_data else catRatios_pseudo,
         exclude_bins_excl, exclude_bins_num_excl
       )
-      calculate_solution(catRatiosNum_excl, exclude_bins_num_excl, output_fit_excl)
+      if print_in_latex:
+        print(get_ratios_latex(catRatiosNum_excl, name))
+      calculate_solution(catRatiosNum_excl, exclude_bins_num_excl, output_fit_excl, name if print_in_latex else "")
       misIDRatios_excl = readMisIDRatios(output_fit_excl)
       chi2s_excl = make_pull_plot_21(
         misIDRatios_excl, catRatios_excl, name = name, output_dir = output_dir,

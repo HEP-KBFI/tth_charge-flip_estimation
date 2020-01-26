@@ -69,24 +69,41 @@ def calculate(catRatios, exclude_bins = None, weighted = True):
   uncs = calculate_uncertainties(np.dot(M,w), W)
   return (rates.tolist(), uncs.tolist())
 
-def print_solution_latex(x, uncs, datastring):
-  latex = """
-	    \multirow{2}{*}{%s}   & $0\leq\eta<1.479$    & $%.4f \pm %.4f$ & $%.4f \pm %.4f$ & $%.4f \pm %.4f$  \\\\
-	                            & $1.479\leq\eta<2.5$  & $%.4f \pm %.4f$ & $%.4f \pm %.4f$ & $%.4f \pm %.4f$  \\\\
-	    \hline""" % (datastring, x[0]*100, uncs[0]*100, x[1]*100, uncs[1]*100, x[2]*100, uncs[2]*100, x[3]*100, uncs[3]*100, x[4]*100, uncs[4]*100, x[5]*100, uncs[5]*100)
-  print latex
+def get_latex_line():
+  return '\n' + '%' * 120 + '\n'
 
-def print_ratios_latex(ratios, datastring):
+def get_solution_latex(rates, uncs, datastring):
   latex = """
-\multirow{2}{*}{%s}   & $0\leq\eta<1.479$    & $%.4f \pm %.4f$ & $%.4f \pm %.4f$ & $%.4f \pm %.4f$  \\\\
-                      & $1.479\leq\eta<2.5$  & $%.4f \pm %.4f$ & $%.4f \pm %.4f$ & $%.4f \pm %.4f$  \\\\
-\hline""" % (datastring, ratios[0][0]*100, ratios[0][1]*100, ratios[1][0]*100, ratios[1][1]*100, ratios[2][0]*100,
-             ratios[2][1]*100, ratios[3][0]*100, ratios[3][1]*100, ratios[4][0]*100, ratios[4][1]*100, ratios[5][0]*100,
-             ratios[5][1]*100)
-  print latex
+\multirow{2}{*}{%s}   & $0     \leq\eta < 1.479$ & $%.4f \pm %.4f$ & $%.4f \pm %.4f$ & $%.4f \pm %.4f$  \\\\
+                %s    & $1.479 \leq\eta < 2.5$   & $%.4f \pm %.4f$ & $%.4f \pm %.4f$ & $%.4f \pm %.4f$  \\\\
+\hline""" % (datastring,
+    rates[0] * 100, uncs[0] * 100,
+    rates[1] * 100, uncs[1] * 100,
+    rates[2] * 100, uncs[2] * 100,
+    ' ' * len(datastring),
+    rates[3] * 100, uncs[3] * 100,
+    rates[4] * 100, uncs[4] * 100,
+    rates[5] * 100, uncs[5] * 100,
+   )
+  return get_latex_line() + latex + get_latex_line()
+
+def get_ratios_latex(ratios, datastring):
+  latex = """
+\multirow{2}{*}{%s} & $0     \leq \eta < 1.479$ & $%.4f \pm %.4f$ & $%.4f \pm %.4f$ & $%.4f \pm %.4f$  \\\\
+                %s  & $1.479 \leq \eta < 2.5$   & $%.4f \pm %.4f$ & $%.4f \pm %.4f$ & $%.4f \pm %.4f$  \\\\
+\hline""" % (datastring,
+    ratios[0][0] * 100, ratios[0][1] * 100,
+    ratios[1][0] * 100, ratios[1][1] * 100,
+    ratios[2][0] * 100, ratios[2][1] * 100,
+    ' ' * len(datastring),
+    ratios[3][0] * 100, ratios[3][1] * 100,
+    ratios[4][0] * 100, ratios[4][1] * 100,
+    ratios[5][0] * 100, ratios[5][1] * 100,
+   )
+  return get_latex_line() + latex + get_latex_line()
 
 def calculate_solution(categoryRatios, exclude_bins, output_filename, datastring = ""):
   rates, uncs = calculate(categoryRatios, exclude_bins)
   fit_results_to_file(rates, uncs, output_filename)
   if datastring:
-    print_solution_latex(rates, uncs, datastring)
+    print(get_solution_latex(rates, uncs, datastring))
