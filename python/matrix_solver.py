@@ -18,7 +18,7 @@ def make_category_matrix(catRatios, weighted = True):
 def calculate_rates(M, b):
   return np.dot(M, b)
 
-def make_coefficient_matrix(exclude_bins=[]):
+def make_coefficient_matrix(exclude_bins = None):
  coeffs = [
    [ 2,  0,  0,  0,  0,  0],
    [ 1,  1,  0,  0,  0,  0],
@@ -44,7 +44,7 @@ def make_coefficient_matrix(exclude_bins=[]):
  ]
  used_coeffs = []
  for i in range(len(coeffs)):
-   if not i in exclude_bins:
+   if not (exclude_bins and i in exclude_bins):
      used_coeffs.append(coeffs[i])
  return np.array(used_coeffs)
 
@@ -58,7 +58,7 @@ def calculate_uncertainties(M, deltab):
   return np.array(uncs)
 
 #Calculates the results
-def calculate(catRatios, exclude_bins = [], weighted = True):
+def calculate(catRatios, exclude_bins = None, weighted = True):
   A = make_coefficient_matrix(exclude_bins)
   (b, W) = make_category_matrix(catRatios, weighted)
   w = np.diag(1/W**2)
@@ -66,7 +66,6 @@ def calculate(catRatios, exclude_bins = [], weighted = True):
   M = calculate_M(Aw)
   bw = np.dot(w, b)
   rates = calculate_rates(M, bw)
-  (b, err) = make_category_matrix(catRatios)
   uncs = calculate_uncertainties(np.dot(M,w), W)
   return (rates.tolist(), uncs.tolist())
 
@@ -86,7 +85,8 @@ def print_ratios_latex(ratios, datastring):
              ratios[5][1]*100)
   print latex
 
-def calculate_solution(categoryRatios, exclude_bins, fitname, fittypestring, datastring):
-  (rates, uncs) = calculate(categoryRatios, exclude_bins)
-  fit_results_to_file(rates, uncs, fittypestring, fitname, datastring)
-  print_solution_latex(rates, uncs, datastring)
+def calculate_solution(categoryRatios, exclude_bins, output_filename, datastring = ""):
+  rates, uncs = calculate(categoryRatios, exclude_bins)
+  fit_results_to_file(rates, uncs, output_filename)
+  if datastring:
+    print_solution_latex(rates, uncs, datastring)

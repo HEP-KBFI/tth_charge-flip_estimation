@@ -128,7 +128,7 @@ def make_pull_plot_21(misIDRatios, catRatios, name, output_dir, y_range = None, 
       sum_plots  [bin_idx - 1].GetXaxis().SetBinLabel(bin_jdx, BIN_NAMES_COMPOSITE_NICE[bin_jdx - 1])
       sum_plots_2[bin_idx - 1].GetXaxis().SetBinLabel(bin_jdx, BIN_NAMES_COMPOSITE_NICE[bin_jdx - 1])
 
-    if excluded and BIN_NAMES_COMPOSITE_NICE[bin_idx - 1] in excluded:
+    if excluded and (bin_idx - 1) in excluded:
       continue
 
     cat1, cat2 = get_component_cats(BIN_NAMES_COMPOSITE_NICE[bin_idx - 1])

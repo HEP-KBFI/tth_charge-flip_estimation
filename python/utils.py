@@ -83,14 +83,10 @@ def get_bin_name_nice(bin_nr):
   return BIN_NAMES_COMPOSITE_NICE[bin_nr]
     
 def bin_names_to_numbers(bin_names):
-  bin_nrs = []
-  for b in bin_names:
-      bin_nrs.append(BIN_NAMES_COMPOSITE.index(b))
-  return bin_nrs
+  return [ BIN_NAMES_COMPOSITE.index(b) for b in bin_names ]
 
 def get_bin_nr(bin_name_nice):
   return BIN_NAMES_COMPOSITE_NICE.index(bin_name_nice)
-
 
 def make_title(name):
   title = ""  
@@ -113,29 +109,26 @@ def make_title(name):
   return title
   
 
-def fit_results_to_file(rates, uncs, fittype, fitname, datastring):
-    fname = "fit_output_%s_%s/fit_res%s.root" % (datastring, fitname, fittype)
-    f = ROOT.TFile(fname,"recreate")
-    f.cd()
+def fit_results_to_file(rates, uncs, output_filename):
+    output_file = ROOT.TFile(output_filename, "recreate")
+    output_file.cd()
 
-    binsPt = [15, 25, 50, 1000]
-    binsEta = [0, 1.479, 2.5]
-    NbinsPt = len(binsPt) - 1
+    binsPt = [ 10, 25, 50, 1000 ]
+    binsEta  = [ 0, 1.479, 2.5 ]
+    NbinsPt  = len(binsPt) - 1
     NbinsEta = len(binsEta) - 1
 
-    h = ROOT.TH2F("chargeMisId","chargeMisId;p_{T}(e) [GeV];#eta(e)", NbinsPt, array.array('d',binsPt), NbinsEta, array.array('d',binsEta))
-    for i in range(len(rates)):
-        #print "%d %f %f %f" %(i, (i%NbinsPt)+1, (i/NbinsPt)+1, rates[i])
-        h.SetBinContent((i % NbinsPt)+1, (i / NbinsPt)+1, rates[i])
-        h.SetBinError((i % NbinsPt)+1, (i / NbinsPt)+1, uncs[i])
-    f.Write()
-    f.Close()
+    h = ROOT.TH2F(
+      "chargeMisId", "chargeMisId;p_{T}(e) [GeV];|#eta(e)|",
+      NbinsPt, array.array('d',binsPt),
+      NbinsEta, array.array('d',binsEta)
+    )
+    h.SetStats(0)
+    h.SetOption("colz;text")
+    for bin_idx in range(len(rates)):
+        h.SetBinContent((bin_idx % NbinsPt) + 1, (bin_idx / NbinsPt) + 1, rates[bin_idx])
+        h.SetBinError  ((bin_idx % NbinsPt) + 1, (bin_idx / NbinsPt) + 1, uncs[bin_idx])
+    output_file.Write()
+    output_file.Close()
 
-def read_exclude_bins(exclude_file):
-  f = open(exclude_file)
-  excludes = []
-  excludes_num = []
-  for line in f:
-    excludes.append(line.strip())
-    excludes_num.append(get_bin_nr(line.strip()))
-  return (excludes, excludes_num)
+    print("Wrote file: {}".format(output_filename))

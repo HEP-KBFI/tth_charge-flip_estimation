@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, readMisIDRatios, read_exclude_bins, \
+from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, readMisIDRatios, fit_results_to_file, \
                                                    BIN_NAMES_SINGLE, get_bin_nr, SmartFormatter
 from tthAnalysis.ChargeFlipEstimation.matrix_solver import calculate_solution, print_ratios_latex, calculate
 from tthAnalysis.ChargeFlipEstimation.plot_pulls import readMisIDRatiosGen, readCategoryRatiosGen, make_pull_plot_21, \
@@ -72,6 +72,10 @@ if __name__ == "__main__":
     type = str, dest = 'output', metavar = 'directory', required = True,
     help = 'R|Output directory',
   )
+  parser.add_argument('-e', '--exclude',
+    type = str, dest = 'exclude', metavar = 'bin', required = False, nargs = '+', default = [],
+    help = 'R|Additional bins to exclude (in nice nomenclature, eg BL_BL not BB_LL)',
+  )
   args = parser.parse_args()
 
   input_hadd_stage2 = args.input_hadd
@@ -131,10 +135,16 @@ if __name__ == "__main__":
 
   print("Comparing 21 ratios from di-lepton mass histograms to the calculated gen rates")
   catRatiosNum_gen, catRatios_gen = readCategoryRatiosGen(input_hadd_stage2, is_gen = True)
-  chi2s = make_pull_plot_21(
+  chi2s_gen = make_pull_plot_21(
     misIDRatios_gen, catRatios_gen, name = "gen", output_dir = output_dir,
     y_range = (-0.001, 0.011), excluded = exclude_bins_gen,
   )
+  print("chi2:")
+  for bin, chi2 in chi2s_gen.items():
+    print("  {} {:.3f}{}".format(bin, chi2, " > {:.3f} => exclude".format(NSIGMAS) if chi2 > NSIGMAS else ""))
+  exclude_gen = [ bin for bin, chi2 in chi2s_gen.items() if chi2 > NSIGMAS ]
+  nof_exclude_gen = len(exclude_gen)
+  print("To keep = {} / exclude = {}".format(len(chi2s_gen) - nof_exclude_gen, nof_exclude_gen))
   print('=' * 120 + '\n')
 
   # Check 3: MC clousre using gen vs rec rates:
@@ -158,24 +168,36 @@ if __name__ == "__main__":
   rates_genRec, uncs_genRec = calculate(catRatiosNum_genRecSum, exclude_bins_genRec)
   print("Calculated generator vs reconstruction level rates:")
   for bin_idx, rate in enumerate(rates_genRec):
-    print("  {}: {} +- {}".format(bin_idx, rate, uncs_gen[bin_idx]))
+    print("  {}: {} +- {}".format(bin_idx, rate, uncs_genRec[bin_idx]))
   compare_misIdRatios(misIDRatiosNum_genRec, rates_genRec, uncs_genRec, name = "genRec_closure", output_dir = output_dir)
 
   print("Comparing 21 ratios from di-lepton mass histograms to the calculated generator vs reconstruction level rates")
   catRatiosNum_genRec, catRatios_genRec = readCategoryRatiosGen(input_hadd_stage2, is_gen = False)
-  chi2s = make_pull_plot_21(
+  chi2s_genRec = make_pull_plot_21(
     misIDRatios_genRec, catRatios_genRec, name = "genRec", output_dir = output_dir,
     y_range = (-0.001, 0.011), excluded = exclude_bins_genRec,
   )
+  print("chi2:")
+  for bin, chi2 in chi2s_genRec.items():
+    print("  {} {:.3f}{}".format(bin, chi2, " > {:.3f} => exclude".format(NSIGMAS) if chi2 > NSIGMAS else ""))
+  exclude_genRec = [ bin for bin, chi2 in chi2s_genRec.items() if chi2 > NSIGMAS ]
+  nof_exclude_genRec = len(exclude_genRec)
+  print("To keep = {} / exclude = {}".format(len(chi2s_genRec) - nof_exclude_genRec, nof_exclude_genRec))
+
+  # Check 4: test to see if we get 6 number back if we construct the 21 rates from
+  #          the 6 generator vs reconstruction level rates and then fit
+  exclude_bins = exclude_bins_genRec
+  exclude_bins_num = [ get_bin_nr(bin_name) for bin_name in exclude_bins ]
+  catRatiosNum_testGenRec, catRatios_testGenRec = makeCatRatiosFrom6(misIDRatios_genRec, exclude_bins)
+  rates_testGenRec, uncs_testGenRec = calculate(catRatiosNum_testGenRec, exclude_bins_num)
+  print("Re-calculated generator vs reconstruction level rates:")
+  for bin_idx, rate in enumerate(rates_testGenRec):
+    print("  {}: {} +- {}".format(bin_idx, rate, uncs_testGenRec[bin_idx]))
+  fitResult_genRec = os.path.join(output_dir, "fit_result_genRec.root")
+  fit_results_to_file(rates_testGenRec, uncs_testGenRec, fitResult_genRec)
   print('=' * 120 + '\n')
 
   sys.exit(0)
-
-  print("Check 5] Closure test to see if we get 6 number back if we construct the 21 from the 6 (gen_rec) rates and then fit :: ")
-  print "Turns out this underestimates uncertainty (due to correlations)"
-  (exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
-  catRatiosNum, catRatios = makeCatRatiosFrom6(misIDRatios, exclude_bins)
-  calculate_solution(catRatiosNum, exclude_bins_num, FITNAME, "closure", "pseudodata")
 
   print("Step 6] Actual calculation starts from here. Read 21 category ratios. Drop categories which we don't want to consider or those have large chi2 in (gen_rec) comparison of 21 rates (from mass_ll histogram) and (from sum of 6 gen_rec rates) (Check 4) ")
   catRatiosNum, catRatios = read_category_ratios("fit_output_pseudodata_%s/results_cat.txt" % (FITNAME))
@@ -191,7 +213,7 @@ if __name__ == "__main__":
     name = "gen_rec_fit"
     exclude_bins, exclude_bins_num = [], []
     if exclude:
-      (exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
+      #(exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
       name += "_exclusions"
       fittypestring += "_exclusions"
     catRatiosNum, catRatios = readCategoryRatiosGen(input_hadd_stage2, exclude_bins, gen = "gen_rec")
@@ -213,7 +235,7 @@ if __name__ == "__main__":
       # Still exclude NaN fit results from non_exclusion results
       exclude_bins, exclude_bins_num = nans, map(get_bin_nr, nans)
       if exclude:
-        (exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
+        #(exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
         name += "_exclusions"
         fittypestring += "_exclusions"
       file_misId = "fit_output_%s_%s/fit_res%s.root" % (datastring, FITNAME, fittypestring)
@@ -249,7 +271,7 @@ if __name__ == "__main__":
 
   print("Closure test to see if we get 6 number back if we construct the 21 from the 6 and then fit")
   print("Turns out this underestimates uncertainty (due to correlations)")
-  (exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
+  #(exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
   catRatiosNum, catRatios = makeCatRatiosFrom6(misIDRatios, exclude_bins)
   calculate_solution(catRatiosNum, exclude_bins_num, FITNAME, "closure", "pseudodata")
 
@@ -266,7 +288,7 @@ if __name__ == "__main__":
     name = "gen_rec_fit"
     exclude_bins, exclude_bins_num = [], []
     if exclude:
-      (exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
+      #(exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
       name += "_exclusions"
       fittypestring += "_exclusions"
     catRatiosNum, catRatios = readCategoryRatiosGen(input_hadd_stage2, exclude_bins, gen = "gen_rec")
@@ -288,7 +310,7 @@ if __name__ == "__main__":
       # Still exclude NaN fit results from non_exclusion results
       exclude_bins, exclude_bins_num = nans, map(get_bin_nr, nans)
       if exclude:
-        (exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
+        #(exclude_bins, exclude_bins_num) = read_exclude_bins(EXCLUDED_FILE)
         name += "_exclusions"
         fittypestring += "_exclusions"
       file_misId = "fit_output_%s_%s/fit_res%s.root" % (datastring, FITNAME, fittypestring)
