@@ -360,7 +360,7 @@ def compare_misIdRatios(misIDRatiosNum_original, misIDRatiosNum_closure, misIDRa
   canvas.SaveAs(os.path.join(output_dir, "pulls_MCClosure_{}_2.pdf".format(name)))
   canvas.SaveAs(os.path.join(output_dir, "pulls_MCClosure_{}_2.png".format(name)))
 
-def plot_ratios(ratios_data, ratios_pseudo, output_filenames):
+def plot_ratios(ratios_data, ratios_pseudo, output_filenames, title):
   canvas = ROOT.TCanvas("canvas", "canvas", 1200, 700)
   canvas.cd()
 
@@ -384,7 +384,7 @@ def plot_ratios(ratios_data, ratios_pseudo, output_filenames):
       pseudo_plot.SetBinContent(bin_idx, 100. * ratio_pseudo[0])
       pseudo_plot.SetBinError(bin_idx, 100. * ratio_pseudo[1])
 
-  data_plot.SetTitle("")
+  data_plot.SetTitle(title)
   data_plot.GetYaxis().SetTitle("r [%]")
   data_plot.GetXaxis().SetTitle("p_{T}-#eta bins")
   data_plot.GetYaxis().SetRangeUser(-0.03, 0.55)
@@ -432,7 +432,7 @@ def get_graph(rates, offset):
   graph = ROOT.TGraphErrors(nbins, X, Y, eX, eY)
   return graph
 
-def plot_rates(rates_data, rates_pseudo, rates_gen, output_filenames):
+def plot_rates(rates_data, rates_pseudo, rates_gen, output_filenames, title):
   canvas = ROOT.TCanvas("canvas", "canvas", 1200, 700)
   canvas.cd()
 
@@ -441,7 +441,7 @@ def plot_rates(rates_data, rates_pseudo, rates_gen, output_filenames):
   base = ROOT.TH1D("base", "base", nbins, offset, nbins + offset)
   for bin_idx, bin_name in enumerate(BIN_NAMES_SINGLE):
     base.GetXaxis().SetBinLabel(bin_idx + 1, bin_name)
-  base.SetTitle("")
+  base.SetTitle(title)
   base.GetYaxis().SetTitle("p [%]")
   base.GetXaxis().SetTitle("p_{T}-#eta bins")
   base.GetYaxis().SetRangeUser(-0.03, 0.20)

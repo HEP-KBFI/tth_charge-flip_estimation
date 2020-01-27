@@ -341,14 +341,15 @@ if __name__ == "__main__":
         print("  {} {:.3f}{}".format(bin, chi2, " > {:.3f} => exclude".format(NSIGMAS) if chi2 > NSIGMAS else ""))
       catRatios_excl_dict[is_data] = catRatios_excl
       misIDRatios_excl_dict[is_data] = misIDRatios_excl
+    title = "With{} excluding the categories".format("" if exclude else "out")
     plot_ratio_filenames = [
       os.path.join(output_dir, "CompareRatios_w{}ExcludedBins.{}".format("" if exclude else "o", ext)) \
       for ext in [ "png", "pdf" ]
     ]
-    plot_ratios(catRatios_excl_dict[True], catRatios_excl_dict[False], plot_ratio_filenames)
+    plot_ratios(catRatios_excl_dict[True], catRatios_excl_dict[False], plot_ratio_filenames, title)
     plot_rate_filenames = [
       os.path.join(output_dir, "CompareRates_w{}ExcludedBins.{}".format("" if exclude else "o", ext)) \
       for ext in [ "png", "pdf" ]
     ]
-    plot_rates(misIDRatios_excl_dict[True], misIDRatios_excl_dict[False], misIDRatios_gen, plot_rate_filenames)
+    plot_rates(misIDRatios_excl_dict[True], misIDRatios_excl_dict[False], misIDRatios_gen, plot_rate_filenames, title)
   print('=' * 120 + '\n')
