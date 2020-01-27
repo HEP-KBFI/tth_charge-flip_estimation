@@ -441,7 +441,7 @@ def plot_rates(rates_data, rates_pseudo, rates_gen, output_filenames, title):
   base = ROOT.TH1D("base", "base", nbins, offset, nbins + offset)
   for bin_idx, bin_name in enumerate(BIN_NAMES_SINGLE):
     base.GetXaxis().SetBinLabel(bin_idx + 1, bin_name)
-  base.SetTitle(title)
+  base.SetTitle("")
   base.GetYaxis().SetTitle("p [%]")
   base.GetXaxis().SetTitle("p_{T}-#eta bins")
   base.GetYaxis().SetRangeUser(-0.03, 0.20)
@@ -481,7 +481,7 @@ def plot_rates(rates_data, rates_pseudo, rates_gen, output_filenames, title):
   pseudo_graph.Draw("PE1  same")
   gen_graph.Draw("PE1 same")
 
-  leg = ROOT.TLegend(0.15, 0.70, 0.50, 0.88)
+  leg = ROOT.TLegend(0.15, 0.70, 0.50, 0.88, title)
   leg.SetBorderSize(0)
   leg.SetLineStyle(0)
   leg.SetTextSize(0.04)
