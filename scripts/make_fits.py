@@ -123,7 +123,11 @@ def read_fit_result(fit_file, postfit_file, bin):
     lambda_poisson0 = -math.log(0.32)
     fitHiErr = lambda_poisson0 / (lambda_poisson0 + fail_h.Integral())
     fitLoErr = fitHiErr
-    print("\t\t changed >>> r: {},  fitHiErr: {}, fitLoErr: {}".format(bestFit, fitHiErr, fitLoErr))
+    print("Changed >>> r: {},  fitHiErr: {}, fitLoErr: {}".format(bestFit, fitHiErr, fitLoErr))
+
+  if bestFit < 0.:
+    print("WARNING: got negative fit result => considering it as invalid")
+    return None
 
   return (int(bin), bestFit, fitHiErr, fitLoErr, 0)
 
