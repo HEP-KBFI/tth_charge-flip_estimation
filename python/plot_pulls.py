@@ -5,6 +5,7 @@ from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, BIN_NAM
 import ROOT
 import math
 import os.path
+import array
 
 def contained_in(composite_name):
   comp1 = composite_name[0]+composite_name[3]
@@ -415,6 +416,79 @@ def plot_ratios(ratios_data, ratios_pseudo, output_filenames):
 
   leg.AddEntry(data_plot, "Data", "lep")
   leg.AddEntry(pseudo_plot, "Pseudodata", "lep")
+  leg.Draw()
+
+  canvas.Update()
+  for output_filename in output_filenames:
+    canvas.SaveAs(output_filename)
+
+def get_graph(rates, offset):
+  nbins = len(BIN_NAMES_SINGLE)
+  assert(nbins == len(rates))
+  X  = array.array('d', [ bin_idx + offset                           for bin_idx in range(nbins) ])
+  Y  = array.array('d', [ 100. * rates[BIN_NAMES_SINGLE[bin_idx]][0] for bin_idx in range(nbins) ])
+  eX = array.array('d', [ 0.                                         for bin_idx in range(nbins) ])
+  eY = array.array('d', [ 100. * rates[BIN_NAMES_SINGLE[bin_idx]][1] for bin_idx in range(nbins) ])
+  graph = ROOT.TGraphErrors(nbins, X, Y, eX, eY)
+  return graph
+
+def plot_rates(rates_data, rates_pseudo, rates_gen, output_filenames):
+  canvas = ROOT.TCanvas("canvas", "canvas", 1200, 700)
+  canvas.cd()
+
+  offset = 0.5
+  nbins = len(BIN_NAMES_SINGLE)
+  base = ROOT.TH1D("base", "base", nbins, offset, nbins + offset)
+  for bin_idx, bin_name in enumerate(BIN_NAMES_SINGLE):
+    base.GetXaxis().SetBinLabel(bin_idx + 1, bin_name)
+  base.SetTitle("")
+  base.GetYaxis().SetTitle("p [%]")
+  base.GetXaxis().SetTitle("p_{T}-#eta bins")
+  base.GetYaxis().SetRangeUser(-0.03, 0.20)
+  base.GetXaxis().SetTitleSize(0.05)
+  base.GetXaxis().SetTitleOffset(0.85)
+  base.GetXaxis().SetLabelSize(0.05)
+  base.GetYaxis().SetTitleSize(0.05)
+  base.GetYaxis().SetTitleOffset(0.9)
+  base.GetYaxis().SetLabelSize(0.04)
+  base.GetYaxis().SetNdivisions(505)
+  base.SetStats(0)
+
+  data_graph = get_graph(rates_data, -0.15 + 2 * offset)
+  pseudo_graph = get_graph(rates_pseudo, 0. + 2 * offset)
+  gen_graph = get_graph(rates_gen, 0.15 + 2 * offset)
+
+  data_graph.SetLineWidth(1)
+  data_graph.SetLineColor(1)
+  data_graph.SetMarkerColor(1)
+  data_graph.SetMarkerStyle(21)
+  data_graph.SetMarkerSize(1.3)
+
+  pseudo_graph.SetLineWidth(1)
+  pseudo_graph.SetLineColor(4)
+  pseudo_graph.SetMarkerColor(4)
+  pseudo_graph.SetMarkerStyle(21)
+  pseudo_graph.SetMarkerSize(1.3)
+
+  gen_graph.SetLineWidth(1)
+  gen_graph.SetLineColor(2)
+  gen_graph.SetMarkerColor(2)
+  gen_graph.SetMarkerStyle(21)
+  gen_graph.SetMarkerSize(1.3)
+
+  base.Draw("AXIS")
+  data_graph.Draw("PE1 ")
+  pseudo_graph.Draw("PE1  same")
+  gen_graph.Draw("PE1 same")
+
+  leg = ROOT.TLegend(0.15, 0.70, 0.50, 0.88)
+  leg.SetBorderSize(0)
+  leg.SetLineStyle(0)
+  leg.SetTextSize(0.04)
+  leg.SetFillColor(0)
+  leg.AddEntry(data_graph, "Data", "lep")
+  leg.AddEntry(pseudo_graph, "Pseudodata", "lep")
+  leg.AddEntry(gen_graph, "MC true", "lep")
   leg.Draw()
 
   canvas.Update()

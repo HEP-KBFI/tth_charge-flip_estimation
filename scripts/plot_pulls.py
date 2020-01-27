@@ -5,7 +5,7 @@ from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, readMis
                                                    BIN_NAMES_SINGLE, BIN_NAMES_COMPOSITE_NICE, get_bin_nr, SmartFormatter
 from tthAnalysis.ChargeFlipEstimation.matrix_solver import calculate_solution, calculate, get_solution_latex, get_ratios_latex
 from tthAnalysis.ChargeFlipEstimation.plot_pulls import readMisIDRatiosGen, readCategoryRatiosGen, make_pull_plot_21, \
-                                                        makeCatRatiosFrom6, compare_misIdRatios, plot_ratios
+                                                        makeCatRatiosFrom6, compare_misIdRatios, plot_ratios, plot_rates
 import scipy.stats
 import ROOT
 import math
@@ -342,9 +342,13 @@ if __name__ == "__main__":
       catRatios_excl_dict[is_data] = catRatios_excl
       misIDRatios_excl_dict[is_data] = misIDRatios_excl
     plot_ratio_filenames = [
-      os.path.join(output_dir, "CompareResults_w{}ExcludedBins.{}".format("" if exclude else "o", ext)) \
+      os.path.join(output_dir, "CompareRatios_w{}ExcludedBins.{}".format("" if exclude else "o", ext)) \
       for ext in [ "png", "pdf" ]
     ]
     plot_ratios(catRatios_excl_dict[True], catRatios_excl_dict[False], plot_ratio_filenames)
-    print(misIDRatios_excl_dict)
+    plot_rate_filenames = [
+      os.path.join(output_dir, "CompareRates_w{}ExcludedBins.{}".format("" if exclude else "o", ext)) \
+      for ext in [ "png", "pdf" ]
+    ]
+    plot_rates(misIDRatios_excl_dict[True], misIDRatios_excl_dict[False], misIDRatios_gen, plot_rate_filenames)
   print('=' * 120 + '\n')
