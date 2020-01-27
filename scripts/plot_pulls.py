@@ -317,7 +317,8 @@ if __name__ == "__main__":
       if exclude:
         assert(is_data in exclude_dict)
       exclude_bins_excl, exclude_bins_num_excl = merge_excludable_bins(
-        exclude_by_singificance = exclude_dict[is_data] if exclude else None,
+        #exclude_by_singificance = exclude_dict[is_data] if exclude else None,
+        exclude_by_singificance = exclude_genRec if exclude else None,
         exclude_by_nan          = nans_data if is_data else nans_pseudo,
         exclude_by_request      = exclude_bins_additional
       )
