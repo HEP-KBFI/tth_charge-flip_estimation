@@ -263,7 +263,7 @@ if __name__ == "__main__":
   if print_in_latex:
     print(get_solution_latex(rates_testGenRec, uncs_testGenRec, "generator vs reconstruction level (recomputed)"))
   fitResult_genRec = os.path.join(output_dir, "fit_result_genRec.root")
-  fit_results_to_file(rates_testGenRec, uncs_testGenRec, fitResult_genRec)
+  fit_results_to_file(rates_testGenRec, uncs_testGenRec, fitResult_genRec, fallback_value)
   print('=' * 120 + '\n')
 
   # Actual calculation starts from here:
