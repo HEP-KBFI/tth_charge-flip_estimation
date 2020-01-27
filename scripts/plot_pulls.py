@@ -309,13 +309,15 @@ if __name__ == "__main__":
   catRatios_data, catRatiosNum_data, nans_data, nans_data_num = read_fits(input_data_file)
   if print_in_latex:
     print(get_ratios_latex(catRatiosNum_data, "data (all bins)"))
+  exclude_dict = {}
   for exclude in [ False, True ]:
     catRatios_excl_dict, misIDRatios_excl_dict = {}, {}
     for is_data in [ False, True ]:
       name = "{}data{}".format("" if is_data else "pseudo", "_exclusions" if exclude else "")
-      # read the fit ratios first!
+      if exclude:
+        assert(is_data in exclude_dict)
       exclude_bins_excl, exclude_bins_num_excl = merge_excludable_bins(
-        exclude_by_singificance = exclude_genRec if exclude else None,
+        exclude_by_singificance = exclude_dict[is_data] if exclude else None,
         exclude_by_nan          = nans_data if is_data else nans_pseudo,
         exclude_by_request      = exclude_bins_additional
       )
@@ -335,10 +337,16 @@ if __name__ == "__main__":
         misIDRatios_excl, catRatios_excl, name = name, output_dir = output_dir,
         y_range = (-0.001, 0.011), excluded = exclude_bins_num_excl
       )
-      #TODO collect the list of bins for the exclusion here and feed it to merge_excludable_bins in the next loop
+      to_exclude = []
       print("chi2:")
       for bin, chi2 in chi2s_excl.items():
-        print("  {} {:.3f}{}".format(bin, chi2, " > {:.3f} => exclude".format(NSIGMAS) if chi2 > NSIGMAS else ""))
+        exclude_by_significance = chi2 > NSIGMAS
+        print("  {} {:.3f}{}".format(bin, chi2, " > {:.3f} => exclude".format(NSIGMAS) if exclude_by_significance else ""))
+        if exclude_by_significance:
+          to_exclude.append(bin)
+      if not exclude:
+        assert(is_data not in exclude_dict)
+        exclude_dict[is_data] = to_exclude
       catRatios_excl_dict[is_data] = catRatios_excl
       misIDRatios_excl_dict[is_data] = misIDRatios_excl
     title = "With{} excluding the categories".format("" if exclude else "out")
