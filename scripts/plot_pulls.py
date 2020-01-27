@@ -107,6 +107,10 @@ if __name__ == "__main__":
     dest = 'latex', action = 'store_true', default = False,
     help = 'R|Print results in LaTeX-formatted table',
   )
+  parser.add_argument('-p', '--placeholder',
+    type = float, dest = 'placeholder', default = 3.5e-5, required = False,
+    help = 'R|Value to use for negative flip rates',
+  )
   args = parser.parse_args()
 
   input_hadd_stage2 = args.input_hadd
@@ -115,6 +119,7 @@ if __name__ == "__main__":
   output_dir = os.path.abspath(args.output)
   exclude_bins_additional = args.exclude
   print_in_latex = args.latex
+  fallback_value = args.placeholder
   assert(os.path.isfile(input_hadd_stage2))
   assert(os.path.isfile(input_data_file))
   assert(os.path.isfile(input_pseudodata_file))
@@ -303,8 +308,8 @@ if __name__ == "__main__":
   catRatios_data, catRatiosNum_data, nans_data, nans_data_num = read_fits(input_data_file)
   if print_in_latex:
     print(get_ratios_latex(catRatiosNum_data, "data (all bins)"))
-  for is_data in [ False, True ]:
-    for exclude in [ False, True ]:
+  for exclude in [ False, True ]:
+    for is_data in [ False, True ]:
       name = "{}data{}".format("" if is_data else "pseudo", "_exclusions" if exclude else "")
       # read the fit ratios first!
       exclude_bins_excl, exclude_bins_num_excl = merge_excludable_bins(
@@ -329,4 +334,5 @@ if __name__ == "__main__":
       print("chi2:")
       for bin, chi2 in chi2s_excl.items():
         print("  {} {:.3f}{}".format(bin, chi2, " > {:.3f} => exclude".format(NSIGMAS) if chi2 > NSIGMAS else ""))
+    #TODO compare data to pseudodata to MC truth
   print('=' * 120 + '\n')

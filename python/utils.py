@@ -121,7 +121,7 @@ def make_title(name):
   return title
   
 
-def fit_results_to_file(rates, uncs, output_filename):
+def fit_results_to_file(rates, uncs, output_filename, fallback_value):
     output_file = ROOT.TFile(output_filename, "recreate")
     output_file.cd()
 
@@ -138,7 +138,10 @@ def fit_results_to_file(rates, uncs, output_filename):
     h.SetStats(0)
     h.SetOption("colz;text")
     for bin_idx in range(len(rates)):
-        h.SetBinContent((bin_idx % NbinsPt) + 1, (bin_idx / NbinsPt) + 1, rates[bin_idx])
+        rate = rates[bin_idx]
+        if rate < 0.:
+          rate = fallback_value
+        h.SetBinContent((bin_idx % NbinsPt) + 1, (bin_idx / NbinsPt) + 1, rate)
         h.SetBinError  ((bin_idx % NbinsPt) + 1, (bin_idx / NbinsPt) + 1, uncs[bin_idx])
     output_file.Write()
     output_file.Close()

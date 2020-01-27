@@ -102,8 +102,8 @@ def get_ratios_latex(ratios, datastring):
    )
   return get_latex_line() + latex + get_latex_line()
 
-def calculate_solution(categoryRatios, exclude_bins, output_filename, datastring = ""):
+def calculate_solution(categoryRatios, exclude_bins, output_filename, fallback_value, datastring = ""):
   rates, uncs = calculate(categoryRatios, exclude_bins)
-  fit_results_to_file(rates, uncs, output_filename)
+  fit_results_to_file(rates, uncs, output_filename, fallback_value)
   if datastring:
     print(get_solution_latex(rates, uncs, datastring))
