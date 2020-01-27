@@ -291,7 +291,8 @@ if __name__ == "__main__":
     if print_in_latex:
       print(get_ratios_latex(catRatiosNum_genRec_excl, datastring))
     calculate_solution(
-      catRatiosNum_genRec_excl, exclude_bins_num_genRec_excl, output_fit_pseudo_excl, datastring if print_in_latex else ""
+      catRatiosNum_genRec_excl, exclude_bins_num_genRec_excl, output_fit_pseudo_excl, fallback_value,
+      datastring if print_in_latex else ""
     )
     misIDRatios_genRec_excl = readMisIDRatios(output_fit_pseudo_excl)
     chi2s_genRec_excl = make_pull_plot_21(
@@ -325,7 +326,9 @@ if __name__ == "__main__":
       )
       if print_in_latex:
         print(get_ratios_latex(catRatiosNum_excl, name))
-      calculate_solution(catRatiosNum_excl, exclude_bins_num_excl, output_fit_excl, name if print_in_latex else "")
+      calculate_solution(
+        catRatiosNum_excl, exclude_bins_num_excl, output_fit_excl, fallback_value, name if print_in_latex else ""
+      )
       misIDRatios_excl = readMisIDRatios(output_fit_excl)
       chi2s_excl = make_pull_plot_21(
         misIDRatios_excl, catRatios_excl, name = name, output_dir = output_dir,

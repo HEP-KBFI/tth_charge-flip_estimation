@@ -141,6 +141,11 @@ def fit_results_to_file(rates, uncs, output_filename, fallback_value):
         rate = rates[bin_idx]
         if rate < 0.:
           rate = fallback_value
+          print(
+            "Setting bin ({} x {}) to value {} because the original rate is negative: {}".format(
+              (bin_idx % NbinsPt) + 1, (bin_idx / NbinsPt) + 1, rate, rates[bin_idx]
+            )
+          )
         h.SetBinContent((bin_idx % NbinsPt) + 1, (bin_idx / NbinsPt) + 1, rate)
         h.SetBinError  ((bin_idx % NbinsPt) + 1, (bin_idx / NbinsPt) + 1, uncs[bin_idx])
     output_file.Write()
