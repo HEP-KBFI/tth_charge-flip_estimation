@@ -35,9 +35,9 @@ COMBINE_SETTINGS = [
   "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 100",
   "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000",
   "--cminDefaultMinimizerStrategy 0 --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 2000",
-  "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 100",
-  "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000",
-  "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 2000",
+#  "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 100",
+#  "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 1000",
+#  "--cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerType Minuit --rMin -4.0 --rMax 20.0 --cminDefaultMinimizerTolerance 2000",
 ]
 
 def find_zero_bins(input_datacard, skip_bins):
