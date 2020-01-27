@@ -100,8 +100,9 @@ def make_pull_plot_21(misIDRatios, catRatios, name, output_dir, y_range = None, 
   sum_plots_2 = []
   chi2s = {}
 
-  sum_plot = ROOT.TH1D("sum_plot", "", 21, 0, 21)
-  gen_plot = ROOT.TH1D("gen_plot", "", 21, 0, 21)
+  nbins = len(BIN_NAMES_COMPOSITE_NICE)
+  sum_plot = ROOT.TH1D("sum_plot", "", nbins, 0, nbins)
+  gen_plot = ROOT.TH1D("gen_plot", "", nbins, 0, nbins)
   sum_plot.SetStats(0)
   gen_plot.SetStats(0)
   c = ROOT.TCanvas("Plot", "Plot", 1920, 1080)
@@ -111,7 +112,6 @@ def make_pull_plot_21(misIDRatios, catRatios, name, output_dir, y_range = None, 
   test1.SetStats(0)
   test2.SetStats(0)
 
-  nbins = len(BIN_NAMES_COMPOSITE_NICE)
   for bin_idx in range(1, nbins + 1):
     pull_plots.append(ROOT.TH1D("cats%d" % bin_idx, "", nbins, 0, nbins))
     sum_plots.append(ROOT.TH1D("sums%d" % bin_idx, "sums%d" % bin_idx, nbins, 0, nbins))
@@ -358,3 +358,65 @@ def compare_misIdRatios(misIDRatiosNum_original, misIDRatiosNum_closure, misIDRa
   canvas.Update()
   canvas.SaveAs(os.path.join(output_dir, "pulls_MCClosure_{}_2.pdf".format(name)))
   canvas.SaveAs(os.path.join(output_dir, "pulls_MCClosure_{}_2.png".format(name)))
+
+def plot_ratios(ratios_data, ratios_pseudo, output_filenames):
+  canvas = ROOT.TCanvas("canvas", "canvas", 1200, 700)
+  canvas.cd()
+
+  nbins = len(BIN_NAMES_COMPOSITE_NICE)
+  data_plot = ROOT.TH1D("data", "", nbins, 0, nbins)
+  pseudo_plot = ROOT.TH1D("pseudo", "", nbins, 0, nbins)
+
+  data_plot.SetStats(0)
+  pseudo_plot.SetStats(0)
+
+  for bin_idx in range(1, nbins + 1):
+    bin_name = BIN_NAMES_COMPOSITE_NICE[bin_idx - 1]
+    data_plot.GetXaxis().SetBinLabel(bin_idx, bin_name)
+    pseudo_plot.GetXaxis().SetBinLabel(bin_idx, bin_name)
+    if bin_name in ratios_data:
+      ratio_data = ratios_data[bin_name]
+      data_plot.SetBinContent(bin_idx, 100. * ratio_data[0])
+      data_plot.SetBinError(bin_idx, 100. * ratio_data[1])
+    if bin_name in ratios_pseudo:
+      ratio_pseudo = ratios_pseudo[bin_name]
+      pseudo_plot.SetBinContent(bin_idx, 100. * ratio_pseudo[0])
+      pseudo_plot.SetBinError(bin_idx, 100. * ratio_pseudo[1])
+
+  data_plot.SetTitle("")
+  data_plot.GetYaxis().SetTitle("r [%]")
+  data_plot.GetXaxis().SetTitle("p_{T}-#eta bins")
+  data_plot.GetYaxis().SetRangeUser(-0.03, 0.55)
+  data_plot.GetXaxis().SetTitleSize(0.05)
+  data_plot.GetXaxis().SetTitleOffset(0.85)
+  data_plot.GetYaxis().SetTitleSize(0.05)
+  data_plot.GetYaxis().SetTitleOffset(0.9)
+
+  data_plot.SetLineWidth(1)
+  data_plot.SetLineColor(2)
+  data_plot.SetMarkerColor(2)
+  data_plot.SetMarkerStyle(21)
+  data_plot.SetMarkerSize(2)
+
+  pseudo_plot.SetLineWidth(1)
+  pseudo_plot.SetLineColor(4)
+  pseudo_plot.SetMarkerColor(4)
+  pseudo_plot.SetMarkerStyle(23)
+  pseudo_plot.SetMarkerSize(2)
+
+  data_plot.Draw("PE1 [] ")
+  pseudo_plot.Draw("PE1 [] same")
+
+  leg = ROOT.TLegend(0.7, 0.75, 0.95, 0.95)
+  leg.SetBorderSize(0)
+  leg.SetLineStyle(0)
+  leg.SetTextSize(0.04)
+  leg.SetFillColor(0)
+
+  leg.AddEntry(data_plot, "Data", "lep")
+  leg.AddEntry(pseudo_plot, "Pseudodata", "lep")
+  leg.Draw()
+
+  canvas.Update()
+  for output_filename in output_filenames:
+    canvas.SaveAs(output_filename)

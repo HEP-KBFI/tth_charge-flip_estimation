@@ -5,7 +5,7 @@ from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, readMis
                                                    BIN_NAMES_SINGLE, BIN_NAMES_COMPOSITE_NICE, get_bin_nr, SmartFormatter
 from tthAnalysis.ChargeFlipEstimation.matrix_solver import calculate_solution, calculate, get_solution_latex, get_ratios_latex
 from tthAnalysis.ChargeFlipEstimation.plot_pulls import readMisIDRatiosGen, readCategoryRatiosGen, make_pull_plot_21, \
-                                                        makeCatRatiosFrom6, compare_misIdRatios
+                                                        makeCatRatiosFrom6, compare_misIdRatios, plot_ratios
 import scipy.stats
 import ROOT
 import math
@@ -310,6 +310,7 @@ if __name__ == "__main__":
   if print_in_latex:
     print(get_ratios_latex(catRatiosNum_data, "data (all bins)"))
   for exclude in [ False, True ]:
+    catRatios_excl_dict, misIDRatios_excl_dict = {}, {}
     for is_data in [ False, True ]:
       name = "{}data{}".format("" if is_data else "pseudo", "_exclusions" if exclude else "")
       # read the fit ratios first!
@@ -334,8 +335,16 @@ if __name__ == "__main__":
         misIDRatios_excl, catRatios_excl, name = name, output_dir = output_dir,
         y_range = (-0.001, 0.011), excluded = exclude_bins_num_excl
       )
+      #TODO collect the list of bins for the exclusion here and feed it to merge_excludable_bins in the next loop
       print("chi2:")
       for bin, chi2 in chi2s_excl.items():
         print("  {} {:.3f}{}".format(bin, chi2, " > {:.3f} => exclude".format(NSIGMAS) if chi2 > NSIGMAS else ""))
-    #TODO compare data to pseudodata to MC truth
+      catRatios_excl_dict[is_data] = catRatios_excl
+      misIDRatios_excl_dict[is_data] = misIDRatios_excl
+    plot_ratio_filenames = [
+      os.path.join(output_dir, "CompareResults_w{}ExcludedBins.{}".format("" if exclude else "o", ext)) \
+      for ext in [ "png", "pdf" ]
+    ]
+    plot_ratios(catRatios_excl_dict[True], catRatios_excl_dict[False], plot_ratio_filenames)
+    print(misIDRatios_excl_dict)
   print('=' * 120 + '\n')
