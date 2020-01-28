@@ -31,14 +31,14 @@ SAMPLES = [
 ]
 
 CATEGORIES = {
-  "ele" : BIN_NAMES_COMPOSITE, # 21 categories of lepton pairs by pT and eta
-  "mu"  : [ "total" ],         # For muons all in the same cateogry
+  "electron" : BIN_NAMES_COMPOSITE, # 21 categories of lepton pairs by pT and eta
+  "muon"     : [ "total" ],         # For muons all in the same cateogry
 }
 PREFIX = 'ttH_charge_flip'
 
 # Systematic uncertainties to add to datacard
 SYSTEMATICS = {
-  "ele" : [
+  "electron" : [
     "CMS_ttHl_electronERUp",
     "CMS_ttHl_electronERDown",
     "CMS_ttHl_electronESEndcapUp",
@@ -46,7 +46,7 @@ SYSTEMATICS = {
     "CMS_ttHl_electronESBarrelUp",
     "CMS_ttHl_electronESBarrelDown",
   ],
-  "mu" : [
+  "muon" : [
     "CMS_ttHl_muonERUp",
     "CMS_ttHl_muonERDown",
     "CMS_ttHl_muonESEndcap1Up",
