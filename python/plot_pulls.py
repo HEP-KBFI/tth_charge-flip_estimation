@@ -357,8 +357,10 @@ def compare_misIdRatios(misIDRatiosNum_original, misIDRatiosNum_closure, misIDRa
   hPull2.Draw("ep1")
 
   canvas.Update()
-  canvas.SaveAs(os.path.join(output_dir, "pulls_MCClosure_{}_2.pdf".format(name)))
-  canvas.SaveAs(os.path.join(output_dir, "pulls_MCClosure_{}_2.png".format(name)))
+  for ext in [ "pdf", "png" ]:
+    canvas.SaveAs(os.path.join(output_dir, "pulls_MCClosure_{}_2.{}".format(name, ext)))
+
+  canvas.Close()
 
 def plot_ratios(ratios_data, ratios_pseudo, output_filenames, title):
   canvas = ROOT.TCanvas("canvas", "canvas", 1200, 700)
@@ -421,6 +423,8 @@ def plot_ratios(ratios_data, ratios_pseudo, output_filenames, title):
   canvas.Update()
   for output_filename in output_filenames:
     canvas.SaveAs(output_filename)
+
+  canvas.Close()
 
 def get_graph(rates, offset):
   nbins = len(BIN_NAMES_SINGLE)
@@ -494,3 +498,5 @@ def plot_rates(rates_data, rates_pseudo, rates_gen, output_filenames, title):
   canvas.Update()
   for output_filename in output_filenames:
     canvas.SaveAs(output_filename)
+
+  canvas.Close()
