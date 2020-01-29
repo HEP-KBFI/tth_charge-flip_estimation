@@ -1,9 +1,0 @@
-latex_output/*.aux
-latex_output/*.log
-latex_output/*.nav
-latex_output/*.out
-latex_output/*.snm
-latex_output/*.toc
-latex_output/*.pdf
-pull_plots
-plots
