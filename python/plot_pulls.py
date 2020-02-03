@@ -153,6 +153,7 @@ def make_pull_plot_21(misIDRatios, catRatios, name, output_dir, y_range = None, 
     test2.SetBinError  (1, sum_plots [bin_idx - 1].GetBinError(bin_idx))
 
     # Chi2 method from histogram doesn't give expected results, will calculate manually
+    #TODO: verify that what we do here is really what we want to do
     chi2s[BIN_NAMES_COMPOSITE_NICE[bin_idx - 1]] = abs(test1.GetBinContent(1) - test2.GetBinContent(1)) / \
                                                    (test1.GetBinError(1) + test2.GetBinError(1))
 

@@ -67,6 +67,14 @@ def calculate(catRatios, exclude_bins = None, weighted = True):
   bw = np.dot(w, b)
   rates = calculate_rates(M, bw)
   uncs = calculate_uncertainties(np.dot(M,w), W)
+  #TODO compute 10k+ uncertainties by computing the 21 ratios like so:
+  # 0) 6 vector, each one corresponding to a charge flip rate in the 6 bins
+  # 1) loop over toys
+  # 1.1) iterate over 21 categories
+  # 1.2) fit result = post-fit ratio + random gaussian number drawn from a distribution where mean = 0 and sigma = post-fit error
+  # 1.3) run this function to get the 6 charge mis-ids & fill a histogram
+  # 2) compare the 6 mean/median of the vectors agrees with the results here -> this is a closure test
+  # 3) compare the uncertainties obtained here to the rms of the 6 vectors -> this is the deliverable
   return (rates.tolist(), uncs.tolist())
 
 def get_latex_line():
