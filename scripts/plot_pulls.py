@@ -3,7 +3,8 @@
 
 from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, readMisIDRatios, fit_results_to_file, \
                                                    BIN_NAMES_SINGLE, BIN_NAMES_COMPOSITE_NICE, get_bin_nr, SmartFormatter
-from tthAnalysis.ChargeFlipEstimation.matrix_solver import calculate_solution, calculate, get_solution_latex, get_ratios_latex
+from tthAnalysis.ChargeFlipEstimation.matrix_solver import calculate_solution, calculate, get_solution_latex, \
+                                                           get_ratios_latex, calculate_solution_wToys, calculate_wToys
 from tthAnalysis.ChargeFlipEstimation.plot_pulls import readMisIDRatiosGen, readCategoryRatiosGen, make_pull_plot_21, \
                                                         makeCatRatiosFrom6, compare_misIdRatios, plot_ratios, plot_rates
 import scipy.stats
@@ -107,6 +108,14 @@ if __name__ == "__main__":
     dest = 'latex', action = 'store_true', default = False,
     help = 'R|Print results in LaTeX-formatted table',
   )
+  parser.add_argument('-s', '--seed',
+    type = int, dest = 'seed', metavar = 'seed', required = False, default = 12345,
+    help = 'R|Seed',
+  )
+  parser.add_argument('-t', '--toys',
+    type = int, dest = 'toys', metavar = 'toys', required = False, default = -1,
+    help = 'R|Use toys',
+  )
   parser.add_argument('-p', '--placeholder',
     type = float, dest = 'placeholder', default = 3.5e-5, required = False,
     help = 'R|Value to use for negative flip rates',
@@ -120,6 +129,9 @@ if __name__ == "__main__":
   exclude_bins_additional = args.exclude
   print_in_latex = args.latex
   fallback_value = args.placeholder
+  nof_toys = args.toys
+  use_toys = nof_toys > 0
+  seed = args.seed
   assert(os.path.isfile(input_hadd_stage2))
   assert(os.path.isfile(input_data_file))
   assert(os.path.isfile(input_pseudodata_file))
@@ -130,6 +142,8 @@ if __name__ == "__main__":
   print("Input pseudodata file:      {}".format(input_pseudodata_file))
   print("Output directory:           {}".format(output_dir))
   print("Bins to explicitly exclude: {}".format(exclude_bins_additional))
+  print("Use toys:                   {}".format(use_toys))
+  print("Number of toys:             {}".format(nof_toys))
 
   # Check 1: MC closure to solve 21 linear equations using dummy 6 rates:
   #   6 dummy rates ->
@@ -154,7 +168,10 @@ if __name__ == "__main__":
   if print_in_latex:
     print(get_ratios_latex(catRatiosNum_dummySum, "dummy"))
 
-  rates_dummy, uncs_dummy = calculate(catRatiosNum_dummySum, exclude_bins_dummy)
+  if use_toys:
+    rates_dummy, uncs_dummy = calculate_wToys(catRatios_dummySum, exclude_bins_dummy, seed, nof_toys)
+  else:
+    rates_dummy, uncs_dummy = calculate(catRatiosNum_dummySum, exclude_bins_dummy)
   print("Calculated dummy rates:")
   for bin_idx, rate in enumerate(rates_dummy):
     print("  {}: {} +- {}".format(bin_idx, rate, uncs_dummy[bin_idx]))
@@ -183,7 +200,10 @@ if __name__ == "__main__":
   if print_in_latex:
     print(get_ratios_latex(catRatiosNum_genSum, "generator-level sum"))
 
-  rates_gen, uncs_gen = calculate(catRatiosNum_genSum, exclude_bins_gen)
+  if use_toys:
+    rates_gen, uncs_gen = calculate_wToys(catRatios_genSum, exclude_bins_gen, seed, nof_toys)
+  else:
+    rates_gen, uncs_gen = calculate(catRatiosNum_genSum, exclude_bins_gen)
   print("Calculated generator-level rates:")
   for bin_idx, rate in enumerate(rates_gen):
     print("  {}: {} +- {}".format(bin_idx, rate, uncs_gen[bin_idx]))
@@ -227,7 +247,10 @@ if __name__ == "__main__":
   if print_in_latex:
     print(get_ratios_latex(catRatiosNum_genRecSum, "generator vs reconstruction level sum"))
 
-  rates_genRec, uncs_genRec = calculate(catRatiosNum_genRecSum, exclude_bins_genRec)
+  if use_toys:
+    rates_genRec, uncs_genRec = calculate_wToys(catRatios_genRecSum, exclude_bins_genRec, seed, nof_toys)
+  else:
+    rates_genRec, uncs_genRec = calculate(catRatiosNum_genRecSum, exclude_bins_genRec)
   print("Calculated generator vs reconstruction level rates:")
   for bin_idx, rate in enumerate(rates_genRec):
     print("  {}: {} +- {}".format(bin_idx, rate, uncs_genRec[bin_idx]))
@@ -256,7 +279,10 @@ if __name__ == "__main__":
     exclude_by_singificance = exclude_genRec, exclude_by_request = exclude_bins_additional
   )
   catRatiosNum_testGenRec, catRatios_testGenRec = makeCatRatiosFrom6(misIDRatios_genRec, exclude_testGenRec_num)
-  rates_testGenRec, uncs_testGenRec = calculate(catRatiosNum_testGenRec, exclude_testGenRec_num)
+  if use_toys:
+    rates_testGenRec, uncs_testGenRec = calculate_wToys(catRatios_testGenRec, exclude_testGenRec_num, seed, nof_toys)
+  else:
+    rates_testGenRec, uncs_testGenRec = calculate(catRatiosNum_testGenRec, exclude_testGenRec_num)
   print("Re-calculated generator vs reconstruction level rates:")
   for bin_idx, rate in enumerate(rates_testGenRec):
     print("  {}: {} +- {}".format(bin_idx, rate, uncs_testGenRec[bin_idx]))
@@ -290,10 +316,16 @@ if __name__ == "__main__":
     datastring = "gen vs reco ({} bins)".format("excluded" if exclude else "all")
     if print_in_latex:
       print(get_ratios_latex(catRatiosNum_genRec_excl, datastring))
-    calculate_solution(
-      catRatiosNum_genRec_excl, exclude_bins_num_genRec_excl, output_fit_pseudo_excl, fallback_value,
-      datastring if print_in_latex else ""
-    )
+    if use_toys:
+      calculate_solution_wToys(
+        catRatios_genRec_excl, exclude_bins_num_genRec_excl, seed, nof_toys, output_fit_pseudo_excl, fallback_value,
+        datastring if print_in_latex else ""
+      )
+    else:
+      calculate_solution(
+        catRatiosNum_genRec_excl, exclude_bins_num_genRec_excl, output_fit_pseudo_excl, fallback_value,
+        datastring if print_in_latex else ""
+      )
     misIDRatios_genRec_excl = readMisIDRatios(output_fit_pseudo_excl)
     chi2s_genRec_excl = make_pull_plot_21(
       misIDRatios_genRec_excl, catRatios_genRec_excl, name = "genRec_fit{}".format(exclude_suffix),
@@ -330,9 +362,15 @@ if __name__ == "__main__":
       )
       if print_in_latex:
         print(get_ratios_latex(catRatiosNum_excl, name))
-      calculate_solution(
-        catRatiosNum_excl, exclude_bins_num_excl, output_fit_excl, fallback_value, name if print_in_latex else ""
-      )
+      if use_toys:
+        calculate_solution_wToys(
+          catRatios_excl, exclude_bins_num_excl, seed, nof_toys, output_fit_pseudo_excl, fallback_value,
+          datastring if print_in_latex else ""
+        )
+      else:
+        calculate_solution(
+          catRatiosNum_excl, exclude_bins_num_excl, output_fit_excl, fallback_value, name if print_in_latex else ""
+        )
       misIDRatios_excl = readMisIDRatios(output_fit_excl)
       chi2s_excl = make_pull_plot_21(
         misIDRatios_excl, catRatios_excl, name = name, output_dir = output_dir,
