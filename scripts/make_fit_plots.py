@@ -427,7 +427,7 @@ if __name__ == '__main__':
   )
   parser.add_argument('-E', '--extension',
     type = str, dest = 'extension', metavar = 'extension', required = False, nargs = '+',
-    choices = [ 'png', 'pdf', 'root' ], default = [ 'png' ],
+    choices = [ 'png', 'pdf', 'root' ], default = [ 'png', 'pdf' ],
     help = 'R|Extension of output plots',
   )
   args = parser.parse_args()
