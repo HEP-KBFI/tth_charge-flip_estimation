@@ -8,18 +8,6 @@ from tthAnalysis.ChargeFlipEstimation.utils import CHARGES, BIN_NAMES_COMPOSITE,
 
 import ROOT
 
-COLOR_INT = 17
-ALPHA = 0.40
-COLOR = ROOT.gROOT.GetColor(COLOR_INT)
-NEWCOLOR_INT = ROOT.gROOT.GetListOfColors().GetSize() + 1
-NEWCOLOR = ROOT.TColor(NEWCOLOR_INT, COLOR.GetRed(), COLOR.GetGreen(), COLOR.GetBlue(), "", ALPHA)
-
-def setStyle_uncertainty(histogram):
-  histogram.SetLineColor(NEWCOLOR_INT)
-  histogram.SetLineWidth(0)
-  histogram.SetFillColor(NEWCOLOR_INT)
-  histogram.SetFillStyle(1001)
-
 def loadHistogram(inputFile, directoryName, histogramName, doHistoNorm_dNBydM):
   histogramName_full = os.path.join(directoryName, histogramName)
   print("loading histogram = {} from file = {}".format(histogramName_full, inputFile.GetName()))
@@ -84,7 +72,7 @@ def dumpHistogram(histogram):
 
 def makePlot(inputFileName_full, directoryName, xMin, xMax, xAxisTitle, yAxisTitle, yMin, yMax,
              showLegend, legendEntry_mcSignal, label1, label2, outputFileName, useLogScale, luminosity00,
-             doHistoNorm_dNBydM, extensions):
+             doHistoNorm_dNBydM, extensions, charge):
   inputFile = ROOT.TFile(inputFileName_full, "read")
   if not inputFile:
     print("Failed to open input file = {}".format(inputFileName_full))
@@ -143,7 +131,10 @@ def makePlot(inputFileName_full, directoryName, xMin, xMax, xAxisTitle, yAxisTit
   histogram_mcBgr.SetFillStyle(1001)
 
   histogramErr_mc = loadHistogram(inputFile, directoryName, "TotalProcs", doHistoNorm_dNBydM)
-  setStyle_uncertainty(histogramErr_mc)
+  histogramErr_mc.SetLineColor(15)
+  histogramErr_mc.SetLineWidth(0)
+  histogramErr_mc.SetFillColor(15)
+  histogramErr_mc.SetFillStyle(1001)
 
   if not (histogram_data and histogram_mcSignal and histogram_mcBgr):
     raise RuntimeError("Failed to load histograms")
@@ -184,6 +175,9 @@ def makePlot(inputFileName_full, directoryName, xMin, xMax, xAxisTitle, yAxisTit
   histogram_mcSignal.Add(histogram_mcBgr)
   histogram_mcSignal.Draw("histsame")
   histogram_mcBgr.Draw("histsame")
+
+  if histogramErr_mc:
+    histogramErr_mc.Draw("e2same")
 
   histogram_data.Draw("e1psame")
   histogram_ref.Draw("axissame")
@@ -266,8 +260,14 @@ def makePlot(inputFileName_full, directoryName, xMin, xMax, xAxisTitle, yAxisTit
     histogramRatio.Sumw2()
   histogramRatio.SetTitle("")
   histogramRatio.SetStats(False)
-  histogramRatio.SetMinimum(-0.99)
-  histogramRatio.SetMaximum(+0.99)
+  if charge == "SS":
+    histogramRatio.SetMinimum(-0.99)
+    histogramRatio.SetMaximum(+0.99)
+  elif charge == "OS":
+    histogramRatio.SetMinimum(-0.09)
+    histogramRatio.SetMaximum(+0.09)
+  else:
+    assert(False)
   histogramRatio.SetMarkerColor(histogram_data.GetMarkerColor())
   histogramRatio.SetMarkerStyle(histogram_data.GetMarkerStyle())
   histogramRatio.SetMarkerSize(histogram_data.GetMarkerSize())
@@ -278,7 +278,10 @@ def makePlot(inputFileName_full, directoryName, xMin, xMax, xAxisTitle, yAxisTit
     histogramRatioUncertainty.Sumw2()
   histogramRatioUncertainty.SetMarkerColor(10)
   histogramRatioUncertainty.SetMarkerSize(0)
-  setStyle_uncertainty(histogramRatioUncertainty)
+  histogramRatioUncertainty.SetLineColor(15)
+  histogramRatioUncertainty.SetLineWidth(0)
+  histogramRatioUncertainty.SetFillColor(15)
+  histogramRatioUncertainty.SetFillStyle(1001)
 
   numBins_bottom = histogramRatio.GetNbinsX()
   for iBin in range(1, numBins_bottom + 1):
@@ -330,7 +333,6 @@ def makePlot(inputFileName_full, directoryName, xMin, xMax, xAxisTitle, yAxisTit
   yAxis_bottom.SetTickLength(0.04)  
 
   histogramRatio.Draw("ep")
-  histogramRatioUncertainty.Draw("e2same")
   
   line = ROOT.TF1("line","0", xAxis_bottom.GetXmin(), xAxis_bottom.GetXmax())
   line.SetLineStyle(3)
@@ -338,7 +340,7 @@ def makePlot(inputFileName_full, directoryName, xMin, xMax, xAxisTitle, yAxisTit
   line.SetLineColor(ROOT.kBlack)
   line.Draw("same")
 
-  
+  histogramRatioUncertainty.Draw("e2same")
   histogramRatio.Draw("epsame")
 
   histogramRatio.Draw("axissame")
@@ -486,5 +488,6 @@ if __name__ == '__main__':
           args.show_legend, args.legend,
           "{} {}".format(cat, charge), fit,
           outputFileName, args.show_log,
-          args.int_lumi, args.normalize, args.extension
+          args.int_lumi, args.normalize, args.extension,
+          charge
         )
