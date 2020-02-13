@@ -72,7 +72,7 @@ def dumpHistogram(histogram):
 
 def makePlot(inputFileName_full, directoryName, xMin, xMax, xAxisTitle, yAxisTitle, yMin, yMax,
              showLegend, legendEntry_mcSignal, label1, label2, outputFileName, useLogScale, luminosity00,
-             doHistoNorm_dNBydM, extensions, charge):
+             doHistoNorm_dNBydM, extensions, zoom):
   inputFile = ROOT.TFile(inputFileName_full, "read")
   if not inputFile:
     print("Failed to open input file = {}".format(inputFileName_full))
@@ -133,7 +133,7 @@ def makePlot(inputFileName_full, directoryName, xMin, xMax, xAxisTitle, yAxisTit
   histogramErr_mc = loadHistogram(inputFile, directoryName, "TotalProcs", doHistoNorm_dNBydM)
   histogramErr_mc.SetLineColor(15)
   histogramErr_mc.SetLineWidth(0)
-  histogramErr_mc.SetFillColor(15)
+  histogramErr_mc.SetFillColorAlpha(12, 0.4)
   histogramErr_mc.SetFillStyle(1001)
 
   if not (histogram_data and histogram_mcSignal and histogram_mcBgr):
@@ -260,14 +260,12 @@ def makePlot(inputFileName_full, directoryName, xMin, xMax, xAxisTitle, yAxisTit
     histogramRatio.Sumw2()
   histogramRatio.SetTitle("")
   histogramRatio.SetStats(False)
-  if charge == "SS":
+  if zoom:
+    histogramRatio.SetMinimum(-0.19)
+    histogramRatio.SetMaximum(+0.19)
+  else:
     histogramRatio.SetMinimum(-0.99)
     histogramRatio.SetMaximum(+0.99)
-  elif charge == "OS":
-    histogramRatio.SetMinimum(-0.09)
-    histogramRatio.SetMaximum(+0.09)
-  else:
-    assert(False)
   histogramRatio.SetMarkerColor(histogram_data.GetMarkerColor())
   histogramRatio.SetMarkerStyle(histogram_data.GetMarkerStyle())
   histogramRatio.SetMarkerSize(histogram_data.GetMarkerSize())
@@ -280,7 +278,7 @@ def makePlot(inputFileName_full, directoryName, xMin, xMax, xAxisTitle, yAxisTit
   histogramRatioUncertainty.SetMarkerSize(0)
   histogramRatioUncertainty.SetLineColor(15)
   histogramRatioUncertainty.SetLineWidth(0)
-  histogramRatioUncertainty.SetFillColor(15)
+  histogramRatioUncertainty.SetFillColorAlpha(12, 0.4)
   histogramRatioUncertainty.SetFillStyle(1001)
 
   numBins_bottom = histogramRatio.GetNbinsX()
@@ -489,5 +487,5 @@ if __name__ == '__main__':
           "{} {}".format(cat, charge), fit,
           outputFileName, args.show_log,
           args.int_lumi, args.normalize, args.extension,
-          charge
+          charge == "OS" and fit == "postfit"
         )
