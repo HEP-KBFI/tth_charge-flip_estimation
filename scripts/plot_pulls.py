@@ -365,7 +365,7 @@ if __name__ == "__main__":
       if use_toys:
         calculate_solution_wToys(
           catRatios_excl, exclude_bins_num_excl, seed, nof_toys, output_fit_pseudo_excl, fallback_value,
-          datastring if print_in_latex else ""
+          name if print_in_latex else ""
         )
       else:
         calculate_solution(
