@@ -14,40 +14,6 @@ COLOR = ROOT.gROOT.GetColor(COLOR_INT)
 NEWCOLOR_INT = ROOT.gROOT.GetListOfColors().GetSize() + 1
 NEWCOLOR = ROOT.TColor(NEWCOLOR_INT, COLOR.GetRed(), COLOR.GetGreen(), COLOR.GetBlue(), "", ALPHA)
 
-def addLabel_CMS_preliminary(x0, y0, x0_luminosity, luminosity00):
-  label_cms = ROOT.TPaveText(x0, y0 + 0.0025, x0 + 0.0950, y0 + 0.0600, "NDC")
-  label_cms.AddText("CMS")
-  label_cms.SetTextFont(61)
-  label_cms.SetTextAlign(13)
-  label_cms.SetTextSize(0.0575)
-  label_cms.SetTextColor(1)
-  label_cms.SetFillStyle(0)
-  label_cms.SetBorderSize(0)
-  label_cms.Draw()
-
-  label_preliminary = ROOT.TPaveText(x0 + 0.1050, y0 - 0.0010, x0 + 0.2950, y0 + 0.0500, "NDC")
-  label_preliminary.AddText("Preliminary")
-  label_preliminary.SetTextFont(52)
-  label_preliminary.SetTextAlign(13)
-  label_preliminary.SetTextSize(0.050)
-  label_preliminary.SetTextColor(1)
-  label_preliminary.SetFillStyle(0)
-  label_preliminary.SetBorderSize(0)
-  label_preliminary.Draw()
-
-
-  label_luminosity = ROOT.TPaveText(x0_luminosity, y0 + 0.0050, x0_luminosity + 0.1900, y0 + 0.0550, "NDC")
-  if luminosity00 > 0.:
-    label_luminosity.AddText("%.1f fb^{-1} (13 TeV)" % luminosity00)
-  else:
-    label_luminosity.AddText("13 TeV")
-  label_luminosity.SetTextAlign(13)
-  label_luminosity.SetTextSize(0.050)
-  label_luminosity.SetTextColor(1)
-  label_luminosity.SetFillStyle(0)
-  label_luminosity.SetBorderSize(0)
-  label_luminosity.Draw()
-
 def setStyle_uncertainty(histogram):
   histogram.SetLineColor(NEWCOLOR_INT)
   histogram.SetLineWidth(0)
@@ -235,7 +201,43 @@ def makePlot(inputFileName_full, directoryName, xMin, xMax, xAxisTitle, yAxisTit
     legend.AddEntry(histogram_mcBgr, "Backgrounds", "f")
     legend.Draw()
 
-  addLabel_CMS_preliminary(0.2100, 0.9700, 0.6350, luminosity00)
+  # addLabel_CMS_preliminary
+  x0 = 0.2100
+  y0 = 0.9700
+  x0_luminosity = 0.6350
+  label_cms = ROOT.TPaveText(x0, y0 + 0.0025, x0 + 0.0950, y0 + 0.0600, "NDC")
+  label_cms.AddText("CMS")
+  label_cms.SetTextFont(61)
+  label_cms.SetTextAlign(13)
+  label_cms.SetTextSize(0.0575)
+  label_cms.SetTextColor(1)
+  label_cms.SetFillStyle(0)
+  label_cms.SetBorderSize(0)
+  label_cms.Draw()
+
+  label_preliminary = ROOT.TPaveText(x0 + 0.1050, y0 - 0.0010, x0 + 0.2950, y0 + 0.0500, "NDC")
+  label_preliminary.AddText("Preliminary")
+  label_preliminary.SetTextFont(52)
+  label_preliminary.SetTextAlign(13)
+  label_preliminary.SetTextSize(0.050)
+  label_preliminary.SetTextColor(1)
+  label_preliminary.SetFillStyle(0)
+  label_preliminary.SetBorderSize(0)
+  label_preliminary.Draw()
+
+
+  label_luminosity = ROOT.TPaveText(x0_luminosity, y0 + 0.0050, x0_luminosity + 0.1900, y0 + 0.0550, "NDC")
+  if luminosity00 > 0.:
+    label_luminosity.AddText("%.1f fb^{-1} (13 TeV)" % luminosity00)
+  else:
+    label_luminosity.AddText("13 TeV")
+  label_luminosity.SetTextAlign(13)
+  label_luminosity.SetTextSize(0.050)
+  label_luminosity.SetTextColor(1)
+  label_luminosity.SetFillStyle(0)
+  label_luminosity.SetBorderSize(0)
+  label_luminosity.Draw()
+  # addLabel_CMS_preliminary
 
   label1_category = ROOT.TPaveText(0.2350, 0.8650, 0.4150, 0.9250, "NDC")
   label1_category.SetTextAlign(23)
