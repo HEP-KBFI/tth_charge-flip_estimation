@@ -120,21 +120,6 @@ def get_solution_latex(rates, uncs, datastring):
    )
   return get_latex_line() + latex + get_latex_line()
 
-def get_ratios_latex(ratios, datastring):
-  latex = """
-\multirow{2}{*}{%s} & $0     \leq \eta < 1.479$ & $%.4f \pm %.4f$ & $%.4f \pm %.4f$ & $%.4f \pm %.4f$  \\\\
-                %s  & $1.479 \leq \eta < 2.5$   & $%.4f \pm %.4f$ & $%.4f \pm %.4f$ & $%.4f \pm %.4f$  \\\\
-\hline""" % (datastring,
-    ratios[0][0] * 100, ratios[0][1] * 100,
-    ratios[1][0] * 100, ratios[1][1] * 100,
-    ratios[2][0] * 100, ratios[2][1] * 100,
-    ' ' * len(datastring),
-    ratios[3][0] * 100, ratios[3][1] * 100,
-    ratios[4][0] * 100, ratios[4][1] * 100,
-    ratios[5][0] * 100, ratios[5][1] * 100,
-   )
-  return get_latex_line() + latex + get_latex_line()
-
 def calculate_solution(categoryRatios, exclude_bins, output_filename, fallback_value, datastring = ""):
   rates, uncs = calculate(categoryRatios, exclude_bins)
   fit_results_to_file(rates, uncs, output_filename, fallback_value)

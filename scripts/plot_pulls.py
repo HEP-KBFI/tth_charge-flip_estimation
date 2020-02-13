@@ -4,7 +4,7 @@
 from tthAnalysis.ChargeFlipEstimation.utils import read_category_ratios, readMisIDRatios, fit_results_to_file, \
                                                    BIN_NAMES_SINGLE, BIN_NAMES_COMPOSITE_NICE, get_bin_nr, SmartFormatter
 from tthAnalysis.ChargeFlipEstimation.matrix_solver import calculate_solution, calculate, get_solution_latex, \
-                                                           get_ratios_latex, calculate_solution_wToys, calculate_wToys
+                                                           calculate_solution_wToys, calculate_wToys
 from tthAnalysis.ChargeFlipEstimation.plot_pulls import readMisIDRatiosGen, readCategoryRatiosGen, make_pull_plot_21, \
                                                         makeCatRatiosFrom6, compare_misIdRatios, plot_ratios, plot_rates
 import scipy.stats
@@ -165,8 +165,6 @@ if __name__ == "__main__":
   print("Ratios by category for 6 dummy rates:")
   for bin_idx, value in catRatios_dummySum.items():
     print("  {}: {} +/- {}".format(bin_idx, value[0], value[1]))
-  if print_in_latex:
-    print(get_ratios_latex(catRatiosNum_dummySum, "dummy"))
 
   if use_toys:
     rates_dummy, uncs_dummy = calculate_wToys(catRatios_dummySum, exclude_bins_dummy, seed, nof_toys)
@@ -197,8 +195,6 @@ if __name__ == "__main__":
   print("Ratios by category for 6 generator-level rates:")
   for bin_idx, value in catRatios_genSum.items():
     print("  {}: {} +/- {}".format(bin_idx, value[0], value[1]))
-  if print_in_latex:
-    print(get_ratios_latex(catRatiosNum_genSum, "generator-level sum"))
 
   if use_toys:
     rates_gen, uncs_gen = calculate_wToys(catRatios_genSum, exclude_bins_gen, seed, nof_toys)
@@ -213,8 +209,6 @@ if __name__ == "__main__":
 
   print("Comparing 21 ratios from di-lepton mass histograms to the calculated gen rates")
   catRatiosNum_gen, catRatios_gen = readCategoryRatiosGen(input_hadd_stage2, is_gen = True)
-  if print_in_latex:
-    print(get_ratios_latex(catRatiosNum_gen, "generator-level"))
   chi2s_gen = make_pull_plot_21(
     misIDRatios_gen, catRatios_gen, name = "gen", output_dir = output_dir,
     y_range = (-0.001, 0.011), excluded = exclude_bins_gen,
@@ -244,8 +238,6 @@ if __name__ == "__main__":
   print("Ratios by category for 6 generator vs reconstruction level rates:")
   for bin_idx, value in catRatios_genRecSum.items():
     print("  {}: {} +/- {}".format(bin_idx, value[0], value[1]))
-  if print_in_latex:
-    print(get_ratios_latex(catRatiosNum_genRecSum, "generator vs reconstruction level sum"))
 
   if use_toys:
     rates_genRec, uncs_genRec = calculate_wToys(catRatios_genRecSum, exclude_bins_genRec, seed, nof_toys)
@@ -260,8 +252,6 @@ if __name__ == "__main__":
 
   print("Comparing 21 ratios from di-lepton mass histograms to the calculated generator vs reconstruction level rates")
   catRatiosNum_genRec, catRatios_genRec = readCategoryRatiosGen(input_hadd_stage2, is_gen = False)
-  if print_in_latex:
-    print(get_ratios_latex(catRatiosNum_genRec, "generator vs reconstruction level"))
   chi2s_genRec = make_pull_plot_21(
     misIDRatios_genRec, catRatios_genRec, name = "genRec", output_dir = output_dir,
     y_range = (-0.001, 0.011), excluded = exclude_bins_genRec,
@@ -297,8 +287,6 @@ if __name__ == "__main__":
   #   - drop categories which we don't want to consider or those that have large chi2 in Check 3/4
   print('=' * 120)
   catRatios_pseudo, catRatiosNum_pseudo, nans_pseudo, nans_pseudo_num = read_fits(input_pseudodata_file)
-  if print_in_latex:
-    print(get_ratios_latex(catRatiosNum_pseudo, "pseudodata (all bins)"))
 
   # Creating pull plots for both cases of not dropping (categories except the ones with NaN ratio) and dropping categories
   for exclude in [ False, True ]:
@@ -314,8 +302,6 @@ if __name__ == "__main__":
       input_hadd_stage2, is_gen = False, exclude_bins = exclude_bins_genRec_excl
     )
     datastring = "gen vs reco ({} bins)".format("excluded" if exclude else "all")
-    if print_in_latex:
-      print(get_ratios_latex(catRatiosNum_genRec_excl, datastring))
     if use_toys:
       calculate_solution_wToys(
         catRatios_genRec_excl, exclude_bins_num_genRec_excl, seed, nof_toys, output_fit_pseudo_excl, fallback_value,
@@ -339,8 +325,6 @@ if __name__ == "__main__":
   # Fit results for pseudodata and data first without and then with excluding some categories
   print('=' * 120)
   catRatios_data, catRatiosNum_data, nans_data, nans_data_num = read_fits(input_data_file)
-  if print_in_latex:
-    print(get_ratios_latex(catRatiosNum_data, "data (all bins)"))
   exclude_dict = {}
   for exclude in [ False, True ]:
     catRatios_excl_dict, misIDRatios_excl_dict = {}, {}
@@ -360,8 +344,6 @@ if __name__ == "__main__":
         catRatios_data    if is_data else catRatios_pseudo,
         exclude_bins_excl, exclude_bins_num_excl
       )
-      if print_in_latex:
-        print(get_ratios_latex(catRatiosNum_excl, name))
       if use_toys:
         calculate_solution_wToys(
           catRatios_excl, exclude_bins_num_excl, seed, nof_toys, output_fit_pseudo_excl, fallback_value,
