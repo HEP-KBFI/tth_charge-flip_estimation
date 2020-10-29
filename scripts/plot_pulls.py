@@ -13,6 +13,7 @@ import math
 import argparse
 import os
 import copy
+import sys
 
 ROOT.gROOT.SetBatch(True)
 ROOT.TH1.SetDefaultSumw2()
@@ -26,9 +27,10 @@ Selects which categories of 21 to drop because of correlations and solves the eq
 """
 
 # Number of sigmas difference to consider fit results not compatible
-PVALUE = 0.1
+PVALUE = 0.001 
 NSIGMAS = scipy.stats.norm.ppf(1. - PVALUE)
 RATE_BINS = { cat_idx : cat for cat_idx, cat in enumerate(BIN_NAMES_SINGLE) }
+USE_GENREC_TO_EXCLUDE_CATEGORIES = True
 
 def read_fits(fit_results):
   catRatiosNum, catRatios = read_category_ratios(fit_results)
@@ -144,6 +146,9 @@ if __name__ == "__main__":
   print("Bins to explicitly exclude: {}".format(exclude_bins_additional))
   print("Use toys:                   {}".format(use_toys))
   print("Number of toys:             {}".format(nof_toys))
+  print("PVALUE:                     {}".format(PVALUE))
+  print("  --> NSIGMAS:              {}".format(NSIGMAS))
+  print("USE_GENREC_TO_EXCLUDE_CATEGORIES:  {}".format(USE_GENREC_TO_EXCLUDE_CATEGORIES))
 
   # Check 1: MC closure to solve 21 linear equations using dummy 6 rates:
   #   6 dummy rates ->
@@ -173,11 +178,14 @@ if __name__ == "__main__":
   print("Calculated dummy rates:")
   for bin_idx, rate in enumerate(rates_dummy):
     print("  {}: {} +- {}".format(bin_idx, rate, uncs_dummy[bin_idx]))
+  sys.stdout.flush()  
   compare_misIdRatios(misIDRatiosNum_dummy, rates_dummy, uncs_dummy, name = "dummy_closure", output_dir = output_dir)
+  sys.stdout.flush()
   if print_in_latex:
     print(get_solution_latex(rates_dummy, uncs_dummy, "dummy"))
   print('=' * 120 + '\n')
-
+  sys.stdout.flush()
+  
   # Check 2: MC clousre using the gen rates:
   #   6 gen rates ->
   #   Add them to get 21 rations ->
@@ -195,7 +203,8 @@ if __name__ == "__main__":
   print("Ratios by category for 6 generator-level rates:")
   for bin_idx, value in catRatios_genSum.items():
     print("  {}: {} +/- {}".format(bin_idx, value[0], value[1]))
-
+  sys.stdout.flush()
+  
   if use_toys:
     rates_gen, uncs_gen = calculate_wToys(catRatios_genSum, exclude_bins_gen, seed, nof_toys)
   else:
@@ -205,14 +214,18 @@ if __name__ == "__main__":
     print("  {}: {} +- {}".format(bin_idx, rate, uncs_gen[bin_idx]))
   if print_in_latex:
     print(get_solution_latex(rates_gen, uncs_gen, "generator-level"))
+  sys.stdout.flush()
   compare_misIdRatios(misIDRatiosNum_gen, rates_gen, uncs_gen, name = "gen_closure", output_dir = output_dir)
-
+  sys.stdout.flush()
+  
   print("Comparing 21 ratios from di-lepton mass histograms to the calculated gen rates")
   catRatiosNum_gen, catRatios_gen = readCategoryRatiosGen(input_hadd_stage2, is_gen = True)
+  sys.stdout.flush()
   chi2s_gen = make_pull_plot_21(
     misIDRatios_gen, catRatios_gen, name = "gen", output_dir = output_dir,
     y_range = (-0.001, 0.011), excluded = exclude_bins_gen,
   )
+  sys.stdout.flush()
   print("chi2:")
   for bin, chi2 in chi2s_gen.items():
     print("  {} {:.3f}{}".format(bin, chi2, " > {:.3f} => exclude".format(NSIGMAS) if chi2 > NSIGMAS else ""))
@@ -220,7 +233,8 @@ if __name__ == "__main__":
   nof_exclude_gen = len(exclude_gen)
   print("To keep = {} / exclude = {}".format(len(chi2s_gen) - nof_exclude_gen, nof_exclude_gen))
   print('=' * 120 + '\n')
-
+  sys.stdout.flush()
+  
   # Check 3: MC clousre using gen vs rec rates:
   #   6 gen vs rec rates ->
   #   Add them to get 21 rations ->
@@ -248,48 +262,69 @@ if __name__ == "__main__":
     print("  {}: {} +- {}".format(bin_idx, rate, uncs_genRec[bin_idx]))
   if print_in_latex:
     print(get_solution_latex(rates_genRec, uncs_genRec, "generator vs reconstruction level"))
+  sys.stdout.flush()
   compare_misIdRatios(misIDRatiosNum_genRec, rates_genRec, uncs_genRec, name = "genRec_closure", output_dir = output_dir)
-
+  sys.stdout.flush()
+  
   print("Comparing 21 ratios from di-lepton mass histograms to the calculated generator vs reconstruction level rates")
   catRatiosNum_genRec, catRatios_genRec = readCategoryRatiosGen(input_hadd_stage2, is_gen = False)
+  sys.stdout.flush()
   chi2s_genRec = make_pull_plot_21(
     misIDRatios_genRec, catRatios_genRec, name = "genRec", output_dir = output_dir,
     y_range = (-0.001, 0.011), excluded = exclude_bins_genRec,
   )
+  sys.stdout.flush()
+  print("catRatios_genRec vs catRatios_genRecSum: ")
+  for bin, r in catRatios_genRec.items():
+    print(" {}: {:.5f} +- {:.5f}   {:.5f} +- {:.5f}".format(bin, catRatios_genRec[bin][0],catRatios_genRec[bin][1],  catRatios_genRecSum[bin][0],catRatios_genRecSum[bin][1]))
+  print("catRatios_genRec:    {}".format(catRatios_genRec))
+  print("catRatios_genRecSum: {}".format(catRatios_genRecSum))
+  sys.stdout.flush()
   print("chi2:")
   for bin, chi2 in chi2s_genRec.items():
     print("  {} {:.3f}{}".format(bin, chi2, " > {:.3f} => exclude".format(NSIGMAS) if chi2 > NSIGMAS else ""))
   exclude_genRec = [ bin for bin, chi2 in chi2s_genRec.items() if chi2 > NSIGMAS ]
   nof_exclude_genRec = len(exclude_genRec)
   print("To keep = {} / exclude = {}".format(len(chi2s_genRec) - nof_exclude_genRec, nof_exclude_genRec))
-
+  sys.stdout.flush()
+  print("exclude_genRec ({}): {}".format(len(exclude_genRec), exclude_genRec))
+  sys.stdout.flush()
+  print("Siddh")
+  sys.stdout.flush()
+  
   # Check 4: test to see if we get 6 number back if we construct the 21 rates from
   #          the 6 generator vs reconstruction level rates and then fit
-  exclude_testGenRec, exclude_testGenRec_num = merge_excludable_bins(
-    exclude_by_singificance = exclude_genRec, exclude_by_request = exclude_bins_additional
-  )
-  catRatiosNum_testGenRec, catRatios_testGenRec = makeCatRatiosFrom6(misIDRatios_genRec, exclude_testGenRec_num)
-  if use_toys:
-    rates_testGenRec, uncs_testGenRec = calculate_wToys(catRatios_testGenRec, exclude_testGenRec_num, seed, nof_toys)
-  else:
-    rates_testGenRec, uncs_testGenRec = calculate(catRatiosNum_testGenRec, exclude_testGenRec_num)
-  print("Re-calculated generator vs reconstruction level rates:")
-  for bin_idx, rate in enumerate(rates_testGenRec):
-    print("  {}: {} +- {}".format(bin_idx, rate, uncs_testGenRec[bin_idx]))
-  if print_in_latex:
-    print(get_solution_latex(rates_testGenRec, uncs_testGenRec, "generator vs reconstruction level (recomputed)"))
-  fitResult_genRec = os.path.join(output_dir, "fit_result_genRec.root")
-  fit_results_to_file(rates_testGenRec, uncs_testGenRec, fitResult_genRec, fallback_value)
-  print('=' * 120 + '\n')
-
+  if USE_GENREC_TO_EXCLUDE_CATEGORIES:
+    exclude_testGenRec, exclude_testGenRec_num = merge_excludable_bins(
+      exclude_by_singificance = exclude_genRec, exclude_by_request = exclude_bins_additional
+    )
+    catRatiosNum_testGenRec, catRatios_testGenRec = makeCatRatiosFrom6(misIDRatios_genRec, exclude_testGenRec_num)
+    if use_toys:
+      rates_testGenRec, uncs_testGenRec = calculate_wToys(catRatios_testGenRec, exclude_testGenRec_num, seed, nof_toys)
+    else:
+      rates_testGenRec, uncs_testGenRec = calculate(catRatiosNum_testGenRec, exclude_testGenRec_num)
+    print("Re-calculated generator vs reconstruction level rates:")
+    for bin_idx, rate in enumerate(rates_testGenRec):
+      print("  {}: {} +- {}".format(bin_idx, rate, uncs_testGenRec[bin_idx]))
+    if print_in_latex:
+      print(get_solution_latex(rates_testGenRec, uncs_testGenRec, "generator vs reconstruction level (recomputed)"))
+    fitResult_genRec = os.path.join(output_dir, "fit_result_genRec.root")
+    fit_results_to_file(rates_testGenRec, uncs_testGenRec, fitResult_genRec, fallback_value)
+    print('=' * 120 + '\n')
+  sys.stdout.flush()
+  
   # Actual calculation starts from here:
   #   - read 21 category ratios
   #   - drop categories which we don't want to consider or those that have large chi2 in Check 3/4
   print('=' * 120)
   catRatios_pseudo, catRatiosNum_pseudo, nans_pseudo, nans_pseudo_num = read_fits(input_pseudodata_file)
-
+  sys.stdout.flush()
+  
   # Creating pull plots for both cases of not dropping (categories except the ones with NaN ratio) and dropping categories
   for exclude in [ False, True ]:
+    if not USE_GENREC_TO_EXCLUDE_CATEGORIES:
+      break
+    
     exclude_suffix = "_exclusions" if exclude else ""
     output_fit_pseudo_excl = os.path.join(output_dir, "fit_result_genRec_pseudo{}.root".format(exclude_suffix))
 
@@ -302,7 +337,7 @@ if __name__ == "__main__":
       input_hadd_stage2, is_gen = False, exclude_bins = exclude_bins_genRec_excl
     )
     datastring = "gen vs reco ({} bins)".format("excluded" if exclude else "all")
-    if use_toys:
+    if use_toys:      
       calculate_solution_wToys(
         catRatios_genRec_excl, exclude_bins_num_genRec_excl, seed, nof_toys, output_fit_pseudo_excl, fallback_value,
         datastring if print_in_latex else ""
@@ -313,15 +348,19 @@ if __name__ == "__main__":
         datastring if print_in_latex else ""
       )
     misIDRatios_genRec_excl = readMisIDRatios(output_fit_pseudo_excl)
+    sys.stdout.flush()
     chi2s_genRec_excl = make_pull_plot_21(
       misIDRatios_genRec_excl, catRatios_genRec_excl, name = "genRec_fit{}".format(exclude_suffix),
       output_dir = output_dir, y_range = (-0.001, 0.011), excluded = exclude_bins_num_genRec_excl
     )
+    sys.stdout.flush()
     print("chi2:")
     for bin, chi2 in chi2s_genRec_excl.items():
-      print("  {} {:.3f}{}".format(bin, chi2, " > {:.3f} => exclude".format(NSIGMAS) if chi2 > NSIGMAS else ""))
+      print("  {} {:.3f}{}".format(bin, chi2, " > {:.3f} => exclude".format(NSIGMAS) if chi2 > NSIGMAS else ""))      
+    sys.stdout.flush()
   print('=' * 120 + '\n')
-
+  sys.stdout.flush()
+  
   # Fit results for pseudodata and data first without and then with excluding some categories
   print('=' * 120)
   catRatios_data, catRatiosNum_data, nans_data, nans_data_num = read_fits(input_data_file)
@@ -330,11 +369,13 @@ if __name__ == "__main__":
     catRatios_excl_dict, misIDRatios_excl_dict = {}, {}
     for is_data in [ False, True ]:
       name = "{}data{}".format("" if is_data else "pseudo", "_exclusions" if exclude else "")
+      print("\n\nRunning for {}:".format(name))
       if exclude:
         assert(is_data in exclude_dict)
       exclude_bins_excl, exclude_bins_num_excl = merge_excludable_bins(
         #exclude_by_singificance = exclude_dict[is_data] if exclude else None,
-        exclude_by_singificance = exclude_genRec if exclude else None,
+        #exclude_by_singificance = exclude_genRec if exclude else None,
+        exclude_by_singificance = (exclude_genRec if USE_GENREC_TO_EXCLUDE_CATEGORIES else exclude_dict[is_data]) if exclude else None,
         exclude_by_nan          = nans_data if is_data else nans_pseudo,
         exclude_by_request      = exclude_bins_additional
       )
@@ -354,10 +395,12 @@ if __name__ == "__main__":
           catRatiosNum_excl, exclude_bins_num_excl, output_fit_excl, fallback_value, name if print_in_latex else ""
         )
       misIDRatios_excl = readMisIDRatios(output_fit_excl)
+      sys.stdout.flush()
       chi2s_excl = make_pull_plot_21(
         misIDRatios_excl, catRatios_excl, name = name, output_dir = output_dir,
         y_range = (-0.001, 0.011), excluded = exclude_bins_num_excl
       )
+      sys.stdout.flush()
       to_exclude = []
       print("chi2:")
       for bin, chi2 in chi2s_excl.items():
@@ -370,6 +413,10 @@ if __name__ == "__main__":
         exclude_dict[is_data] = to_exclude
       catRatios_excl_dict[is_data] = catRatios_excl
       misIDRatios_excl_dict[is_data] = misIDRatios_excl
+    sys.stdout.flush()
+    print("exclude_genRec: {}".format(exclude_genRec)) 
+    print("exclude_dict: {}".format(exclude_dict))
+    sys.stdout.flush()
     title = "With{} excluding the categories".format("" if exclude else "out")
     plot_ratio_filenames = [
       os.path.join(output_dir, "CompareRatios_w{}ExcludedBins.{}".format("" if exclude else "o", ext)) \

@@ -6,6 +6,7 @@ import ROOT
 import math
 import os.path
 import array
+import sys
 
 def contained_in(composite_name):
   comp1 = composite_name[0]+composite_name[3]
@@ -76,7 +77,9 @@ def readCategoryRatiosGen(infile_name, is_gen, exclude_bins = None):
   return (ratios_num, ratios)
 
 def calUncertaintyR(Nos, eNos, Nss, eNss):
-  term1 = Nos**2 / (Nss + Nos)**4 * eNss**2
+  #term1 = Nos**2 / (Nss + Nos)**4 * eNss**2
+  #term2 = Nss**2 / (Nss + Nos)**4 * eNos**2
+  term1  = 1     / (Nss + Nos)**2 * eNss**2
   term2 = Nss**2 / (Nss + Nos)**4 * eNos**2
   return math.sqrt(term1 + term2)
 
@@ -89,7 +92,8 @@ def makeCatRatiosFrom6(misIDRatios, excluded = None):
       continue
     (ratio1, ratio2) = cat.split("_")
     cat_ratio = misIDRatios[ratio1][0] + misIDRatios[ratio2][0]
-    err = misIDRatios[ratio1][1] + misIDRatios[ratio2][1] #TODO why not add them quadratically?
+    #err = misIDRatios[ratio1][1] + misIDRatios[ratio2][1] #TODO why not add them quadratically?
+    err = math.sqrt(misIDRatios[ratio1][1]**2 + misIDRatios[ratio2][1]**2)
     ratios[cat] = (cat_ratio, err, err)
     ratios_num.append((cat_ratio, err, err))
   return (ratios_num, ratios)
@@ -147,15 +151,32 @@ def make_pull_plot_21(misIDRatios, catRatios, name, output_dir, y_range = None, 
 
     sum_plots[bin_idx - 1].Add(sum_plots_2[bin_idx - 1])
 
-    test1.SetBinContent(1, pull_plots[bin_idx - 1].GetBinContent(bin_idx))
-    test1.SetBinError  (1, pull_plots[bin_idx - 1].GetBinError(bin_idx))
+    test1.SetBinContent(1, pull_plots[bin_idx - 1].GetBinContent(bin_idx))    
     test2.SetBinContent(1, sum_plots [bin_idx - 1].GetBinContent(bin_idx))
-    test2.SetBinError  (1, sum_plots [bin_idx - 1].GetBinError(bin_idx))
+    
 
+    ### inflate error: Siddhesh 
+    # set error as 5% of the bin content if error < 5%*bin content
+    # to get lower chi2 allowing more bins to pass chi2 threshold
+    kErrorInflation = 0.05
+    test1.SetBinError  (1, max(pull_plots[bin_idx - 1].GetBinError(bin_idx), kErrorInflation * abs(test1.GetBinContent(1))) )
+    test2.SetBinError  (1, max(sum_plots [bin_idx - 1].GetBinError(bin_idx), kErrorInflation * abs(test2.GetBinContent(1))) )
+    
     # Chi2 method from histogram doesn't give expected results, will calculate manually
     #TODO: verify that what we do here is really what we want to do
-    chi2s[BIN_NAMES_COMPOSITE_NICE[bin_idx - 1]] = abs(test1.GetBinContent(1) - test2.GetBinContent(1)) / \
-                                                   (test1.GetBinError(1) + test2.GetBinError(1))
+    #chi2s[BIN_NAMES_COMPOSITE_NICE[bin_idx - 1]] = abs(test1.GetBinContent(1) - test2.GetBinContent(1)) / \
+    #                                               (test1.GetBinError(1) + test2.GetBinError(1))
+    chi2s[BIN_NAMES_COMPOSITE_NICE[bin_idx - 1]] = abs(test1.GetBinContent(1) - test2.GetBinContent(1))**2 / \
+                                                   (test1.GetBinError(1)**2 + test2.GetBinError(1)**2)
+    #chi2s[BIN_NAMES_COMPOSITE_NICE[bin_idx - 1]] = abs(test1.GetBinContent(1) - test2.GetBinContent(1)) / \
+    #  max(test1.GetBinError(1), test2.GetBinError(1))
+    #chi2s[BIN_NAMES_COMPOSITE_NICE[bin_idx - 1]] = abs(test1.GetBinContent(1) - test2.GetBinContent(1))**2 / \
+    #  max(test1.GetBinError(1), test2.GetBinError(1))
+    print(" chi2 {}: {} \t {} +-{},  {} +- {}".format(\
+                                                      BIN_NAMES_COMPOSITE_NICE[bin_idx - 1],chi2s[BIN_NAMES_COMPOSITE_NICE[bin_idx - 1]], \
+                                                      test1.GetBinContent(1),test1.GetBinError(1),\
+                                                      test2.GetBinContent(1),test2.GetBinError(1)
+    ))
 
     gen_plot.Add(pull_plots[bin_idx - 1])
     sum_plot.Add(sum_plots[bin_idx - 1])
